@@ -1,0 +1,38 @@
+name: Refresh public job research
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 5 * * *'
+permissions:
+  contents: write
+  pages: write
+concurrency:
+  group: refresh-public-jobs
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check collector and privacy rules
+        run: python3 -B -m unittest discover -s tests -q
+      - name: Collect free public sources
+        run: python3 -B scout.py scan
+      - name: Build sanitized public snapshot
+        run: |
+          python3 -B -c "import scout; s=scout.snapshot(); assert len(s['jobs']) >= 5, 'Insufficient collection; keeping previous publication'"
+          python3 -B publish.py --output docs
+      - name: Commit public snapshot
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs
+          if ! git diff --cached --quiet; then
+            git commit -m 'Refresh public job research'
+            git push
+          fi
+      - name: Request Pages rebuild
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method POST repos/${{ github.repository }}/pages/builds

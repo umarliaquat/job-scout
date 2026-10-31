@@ -1,0 +1,14 @@
+/* Semantic labels: text always carries the meaning; color helps comparison. */
+.scan-chip{display:inline-flex;align-items:center;max-width:100%;width:max-content;vertical-align:middle;gap:5px;padding:3px 8px;border:1px solid #e2dfe7;border-radius:6px;background:#f4f3f6;color:#625b6d;font-size:13px;font-weight:500;line-height:1.65;white-space:normal;overflow-wrap:normal}
+.scan-chip.violet{background:#f0ecfc;border-color:#e1d8f6;color:#614597}
+.scan-chip.green{background:#edf7ef;border-color:#cfe5d4;color:#316345}
+.scan-chip.blue{background:#edf3fc;border-color:#d4e1f4;color:#3e5f91}
+.scan-chip.teal{background:#eaf6f5;border-color:#cce5e0;color:#286660}
+.scan-chip.amber{background:#fcf4e8;border-color:#ecddc2;color:#805c25}
+.scan-chip.rose{background:#fbefef;border-color:#efd4d7;color:#964c57}
+.jobs-table td .scan-chip{margin-top:7px}
+.jobs-table td .application-state .scan-chip{margin-top:0}
+.jobs-table .cell-category{color:inherit}
+.jobs-table td{padding-top:18px;padding-bottom:18px}
+.card-facts .scan-chip{font-size:13px}
+.profile-evidence{background:#f5f2fb;border-radius:8px;padding:16px 20px;margin:20px 0;color:#5c477d;font-size:15px;line-height:1.8}

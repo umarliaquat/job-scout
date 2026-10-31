@@ -1,0 +1,658 @@
+{
+  "max_age_days": 30,
+  "verify_limit": 240,
+  "cache_hours": 12,
+  "blocked_companies": [
+    "swiftguest",
+    "ilmx"
+  ],
+  "feeds": [
+    "remotive",
+    "remoteok",
+    "arbeitnow",
+    "wwr",
+    "jobicy",
+    "himalayas",
+    "arbeitnow_uk"
+  ],
+  "boards": [
+    {
+      "company": "PostHog",
+      "kind": "ashby",
+      "slug": "posthog",
+      "website": "https://posthog.com"
+    },
+    {
+      "company": "Linear",
+      "kind": "ashby",
+      "slug": "linear",
+      "website": "https://linear.app"
+    },
+    {
+      "company": "Raycast",
+      "kind": "ashby",
+      "slug": "raycast",
+      "website": "https://raycast.com"
+    },
+    {
+      "company": "Resend",
+      "kind": "ashby",
+      "slug": "resend",
+      "website": "https://resend.com"
+    },
+    {
+      "company": "Supabase",
+      "kind": "ashby",
+      "slug": "supabase",
+      "website": "https://supabase.com"
+    },
+    {
+      "company": "n8n",
+      "kind": "ashby",
+      "slug": "n8n",
+      "website": "https://n8n.io"
+    },
+    {
+      "company": "Plain",
+      "kind": "ashby",
+      "slug": "plain",
+      "website": "https://plain.com"
+    },
+    {
+      "company": "Ashby",
+      "kind": "ashby",
+      "slug": "ashby",
+      "website": "https://ashbyhq.com"
+    },
+    {
+      "company": "Attio",
+      "kind": "ashby",
+      "slug": "attio",
+      "website": "https://attio.com"
+    },
+    {
+      "company": "incident.io",
+      "kind": "ashby",
+      "slug": "incident",
+      "website": "https://incident.io"
+    },
+    {
+      "company": "Restate",
+      "kind": "ashby",
+      "slug": "restate",
+      "website": "https://restate.dev"
+    },
+    {
+      "company": "Restream",
+      "kind": "ashby",
+      "slug": "restream",
+      "website": "https://restream.io"
+    },
+    {
+      "company": "Paires",
+      "kind": "ashby",
+      "slug": "paires",
+      "website": "https://paires.com"
+    },
+    {
+      "company": "Circle",
+      "kind": "ashby",
+      "slug": "circle",
+      "website": "https://circle.so"
+    },
+    {
+      "company": "Finch Care",
+      "kind": "ashby",
+      "slug": "finch",
+      "website": "https://finchcare.com"
+    },
+    {
+      "company": "Zed",
+      "kind": "ashby",
+      "slug": "zed",
+      "website": "https://zed.dev"
+    },
+    {
+      "company": "Obscura VPN",
+      "kind": "ashby",
+      "slug": "sovereign-engineering",
+      "website": "https://obscura.net"
+    },
+    {
+      "company": "Clera",
+      "kind": "ashby",
+      "slug": "clera",
+      "website": "https://clera.ai"
+    },
+    {
+      "company": "Prelim",
+      "kind": "ashby",
+      "slug": "prelim",
+      "website": "https://prelim.com"
+    },
+    {
+      "company": "Metabase",
+      "kind": "lever",
+      "slug": "metabase",
+      "website": "https://metabase.com"
+    },
+    {
+      "company": "Remote",
+      "kind": "greenhouse",
+      "slug": "remotecom",
+      "website": "https://remote.com"
+    },
+    {
+      "company": "Grafana Labs",
+      "kind": "greenhouse",
+      "slug": "grafanalabs",
+      "website": "https://grafana.com"
+    },
+    {
+      "company": "Netlify",
+      "kind": "greenhouse",
+      "slug": "netlify",
+      "website": "https://netlify.com"
+    },
+    {
+      "company": "AutoScale Ventures",
+      "kind": "page",
+      "slug": "28cf1d16f1f6",
+      "url": "https://autoscale-ventures.careers-page.com/jobs/3a0f4c73-9651-4fe2-ad26-613cf6bb2365",
+      "website": "https://autoscaleventures.com",
+      "location": "Pakistan \u00b7 Remote",
+      "research_notes": "Oct 22 employer JobPosting date; Pakistan explicitly listed. Pacific business hours. Company site and independent identity still need review."
+    },
+    {
+      "company": "Docflare",
+      "kind": "page",
+      "slug": "6e8d713bef02",
+      "url": "https://docflare.app/careers/design-engineer",
+      "website": "https://docflare.app",
+      "location": "Remote worldwide",
+      "research_notes": "Oct 13 employer JobPosting date. Direct email application route; bootstrapped company self-report. Early product; legitimacy and production-code requirements need checking."
+    },
+    {
+      "company": "Sibyl Technologies",
+      "kind": "page",
+      "slug": "ea42737592ae",
+      "url": "https://www.sibyl.pk/pages/jobs/ui-ux-designer",
+      "website": "https://www.sibyl.pk",
+      "location": "Remote Pakistan",
+      "research_notes": "Oct 11 employer JobPosting date and role-specific form found. Company LinkedIn presence located; company scale claims not independently verified."
+    },
+    {
+      "company": "The Kabeer Co",
+      "kind": "page",
+      "slug": "42b0c08233a5",
+      "url": "https://thekabeer.co/careers/remote-ui-ux-designer-saudi-clients",
+      "website": "https://thekabeer.co",
+      "location": "Pakistan \u00b7 Remote",
+      "research_notes": "Oct 22 date shown on employer page. Saudi client is confidential; recruitment intermediary, not a disclosed end employer."
+    },
+    {
+      "company": "LLMP",
+      "kind": "page",
+      "slug": "71cb6c455a40",
+      "url": "https://llmp.io/careers/ai-first-ui-ux-designer",
+      "website": "https://llmp.io",
+      "location": "Pakistan \u00b7 Remote",
+      "research_notes": "Direct role page and current career index. Publication date not established. Includes marketing and visual content; 1\u20133 years requested may under-level a five-year designer."
+    },
+    {
+      "company": "Synthreo",
+      "kind": "page",
+      "slug": "96d51a7c21a4",
+      "url": "https://synthreo.ai/careers/product-designer/",
+      "website": "https://synthreo.ai",
+      "location": "Remote global",
+      "research_notes": "Company has named founders and independent industry coverage. Employer schema dates the vacancy February 23: older, despite still listing an email route."
+    },
+    {
+      "company": "Namefi",
+      "kind": "page",
+      "slug": "e58d62550203",
+      "url": "https://namefi.io/r/en/careers/build-design-2026-05",
+      "website": "https://namefi.io",
+      "location": "Remote worldwide",
+      "research_notes": "Employer schema date is May 27. Keep out of recent queue. Contractor compensation is broad and low at the bottom end."
+    },
+    {
+      "company": "Refokus",
+      "kind": "page",
+      "slug": "c9e6da3cfb75",
+      "url": "https://www.refokus.com/careers/creative-production-designer",
+      "website": "https://www.refokus.com",
+      "location": "Remote worldwide",
+      "research_notes": "Live role-specific application form; underlying schema dates July 23, 2025. Established studio, useful watchlist lead but not a recent posting."
+    },
+    {
+      "company": "Intentface",
+      "kind": "page",
+      "slug": "eb48cb456a35",
+      "url": "https://www.intentface.com/careers/design-engineer",
+      "website": "https://www.intentface.com",
+      "location": "Remote Europe",
+      "research_notes": "Explicit EU/EEA, UK or Switzerland residency and work authorization. Oct 27 is visibly labeled last updated; confirm original posting date. Strong engineering requirements.",
+      "date_is_modified": true
+    },
+    {
+      "company": "Wenower",
+      "kind": "page",
+      "slug": "8d451c2b641b",
+      "url": "https://www.wenower.com/careers/product-designer",
+      "website": "https://www.wenower.com",
+      "location": "Remote worldwide",
+      "research_notes": "Dedicated product-designer page accepts email. Date and independent employer identity unconfirmed."
+    },
+    {
+      "company": "Scrptble",
+      "kind": "page",
+      "slug": "483b7da70ee0",
+      "url": "https://scrptble.com/careers",
+      "website": "https://scrptble.com",
+      "location": "Pakistan \u00b7 Remote",
+      "research_notes": "Karachi software studio lists UI/UX role. Page fetch failed once; no dated vacancy established."
+    },
+    {
+      "company": "Forma",
+      "kind": "page",
+      "slug": "f1d667e0dc0c",
+      "url": "https://forma.pk/careers",
+      "website": "https://forma.pk",
+      "location": "Pakistan \u00b7 Remote",
+      "research_notes": "Employer lists product design as hybrid / remote. No separate dated role application established; confirm fully remote arrangement."
+    },
+    {
+      "company": "AFNEXIS",
+      "kind": "page",
+      "slug": "5b00dfadd8a4",
+      "url": "https://afnexis.com/career",
+      "website": "https://afnexis.com",
+      "location": "Pakistan \u00b7 Remote",
+      "research_notes": "Employer career page lists UI/UX role. Date and application destination require checking."
+    },
+    {
+      "company": "Collabify",
+      "kind": "page",
+      "slug": "e86cbe696060",
+      "url": "https://heycollabify.com/us/en/careers/design-engineer",
+      "website": "https://heycollabify.com",
+      "location": "Remote worldwide",
+      "research_notes": "Dedicated design-engineer role and form advertised. Date and independent company identity need verification."
+    },
+    {
+      "company": "FORMAS.AI",
+      "kind": "page",
+      "slug": "4a62d1f2f57f",
+      "url": "https://www.formas.ai/careers",
+      "website": "https://www.formas.ai",
+      "location": "Remote global",
+      "research_notes": "Singapore AI design-tool startup lists UI/UX and fractional opportunities. Date and actual application route need checking."
+    },
+    {
+      "company": "Pavago",
+      "kind": "page",
+      "slug": "38941d36d833",
+      "url": "https://apply.workable.com/pavago/j/786384024A/",
+      "website": "https://pavago.co",
+      "location": "Pakistan \u00b7 Remote",
+      "research_notes": "Recruiter for unnamed client. Strong UX role match. Workable page needs JavaScript; do not infer posting date from search crawl."
+    },
+    {
+      "company": "Huzzle",
+      "kind": "page",
+      "slug": "16b2fc0aad77",
+      "url": "https://apply.workable.com/huzzle/j/D56C548DBA/",
+      "website": "https://huzzle.com",
+      "location": "Pakistan \u00b7 Remote",
+      "research_notes": "Recruiter for unnamed client. Direct listing includes Pakistan; another source dates it September 17, so freshness is not established as recent."
+    },
+    {
+      "company": "Sagan Recruitment",
+      "kind": "page",
+      "slug": "4bc4951cfc42",
+      "url": "https://www.careers-page.com/oldsagan/job/L4384997",
+      "website": "https://www.saganrecruitment.com",
+      "location": "Remote \u00b7 CET timezone",
+      "research_notes": "Copenhagen product-studio client is undisclosed. Strong AI/SaaS design scope; application link found, posting date unknown."
+    },
+    {
+      "company": "Umbrel",
+      "kind": "ashby",
+      "slug": "umbrel",
+      "website": "https://umbrel.com"
+    },
+    {
+      "company": "Playlab",
+      "kind": "ashby",
+      "slug": "playlab",
+      "website": "https://playlab.ai"
+    },
+    {
+      "company": "Dispatch",
+      "kind": "ashby",
+      "slug": "dispatch",
+      "website": "https://dispatch.ai"
+    },
+    {
+      "company": "Nash",
+      "kind": "ashby",
+      "slug": "nash",
+      "website": "https://usenash.com"
+    },
+    {
+      "company": "Novel",
+      "kind": "ashby",
+      "slug": "novel",
+      "website": "https://novelhq.com"
+    },
+    {
+      "company": "Tailor",
+      "kind": "ashby",
+      "slug": "tailor",
+      "website": "https://tailor.tech"
+    },
+    {
+      "company": "Pennylane",
+      "kind": "ashby",
+      "slug": "pennylane",
+      "website": "https://pennylane.com"
+    },
+    {
+      "company": "Ownform",
+      "kind": "page",
+      "slug": "c1da30232314",
+      "url": "https://www.ownform.design/journal/were-hiring",
+      "website": "https://www.ownform.design",
+      "location": "Remote \u00b7 European timezone",
+      "research_notes": "October 2026 announcement; exact day not supplied. Small studio; four-plus years, AI/SaaS/fintech. Product-designer Tally form found. Ask whether European timezone means overlap or residency.",
+      "title": "Product Designer"
+    },
+    {
+      "company": "Bejamas",
+      "kind": "page",
+      "slug": "8949560e9c50",
+      "url": "https://bejamas.com/careers/ux-designer",
+      "website": "https://bejamas.com",
+      "location": "Europe \u00b7 Remote",
+      "research_notes": "Visible publication October 22, 2026; separate application form found. B2B freelance opportunity requires sole proprietorship. Europe advertised; confirm Pakistan contracting eligibility. Browser check: Pakistan is an available residence/tax-country option, but the generic country list does not confirm eligibility against the Europe heading."
+    },
+    {
+      "company": "WunderGraph",
+      "kind": "page",
+      "slug": "09c7ba7d4ed2",
+      "url": "https://wundergraph.com/jobs/822c2b09-155e-448d-bb89-4976d0d99667",
+      "website": "https://wundergraph.com",
+      "location": "Remote \u00b7 EMEA",
+      "research_notes": "Developer-tool startup; separate Ashby application linked. EMEA advertised, Pakistan not confirmed. Original publication date unconfirmed."
+    },
+    {
+      "company": "Pavago",
+      "kind": "workable",
+      "slug": "pavago",
+      "website": "https://pavago.co",
+      "research_notes": "Recruitment intermediary; end-client identity and size may be undisclosed. Distinct country variants are not additional employers."
+    },
+    {
+      "company": "Huzzle",
+      "kind": "workable",
+      "slug": "huzzle",
+      "website": "https://www.huzzle.com",
+      "research_notes": "Recruitment intermediary; end-client identity and size may be undisclosed. Distinct country variants are not additional employers."
+    },
+    {
+      "company": "LearnWorlds",
+      "kind": "workable",
+      "slug": "learnworlds",
+      "website": "https://www.learnworlds.com"
+    },
+    {
+      "company": "Defuse Labs",
+      "kind": "greenhouse",
+      "slug": "defuselabs",
+      "website": "https://defuse.org"
+    },
+    {
+      "company": "Flex",
+      "kind": "greenhouse",
+      "slug": "flex",
+      "website": "https://getflex.com"
+    },
+    {
+      "company": "SplitMetrics",
+      "kind": "ashby",
+      "slug": "splitmetrics",
+      "website": "https://splitmetrics.com"
+    },
+    {
+      "company": "Primer",
+      "kind": "ashby",
+      "slug": "primer.io",
+      "website": "https://primer.io"
+    },
+    {
+      "company": "RootstockLabs",
+      "kind": "greenhouse",
+      "slug": "rootstocklabsltd",
+      "website": "https://rootstocklabs.com"
+    },
+    {
+      "company": "PadSplit",
+      "kind": "lever",
+      "slug": "padsplit",
+      "website": "https://www.padsplit.com"
+    },
+    {
+      "company": "ManyPixels",
+      "kind": "page",
+      "slug": "abb167dd4ce8",
+      "url": "https://manypixels.breezy.hr/p/eec92a9a3a6601-senior-multi-skilled-designer-ai-fluent-remote-full-time",
+      "website": "https://www.manypixels.co",
+      "location": "Worldwide",
+      "research_notes": "Oct 14 employer schema. AI-fluent broad graphic/web/brand role, not solely product UX; requires rapid multi-project delivery."
+    },
+    {
+      "company": "DevDinos",
+      "kind": "page",
+      "slug": "42dedab90da8",
+      "url": "https://devdinos.com/careers/ui-ux-product-designer",
+      "website": "https://devdinos.com",
+      "location": "Pakistan \u00b7 Remote",
+      "research_notes": "Employer role page and matching recent LinkedIn post. Form is multi-step; initial fields visible, final upload/submission not tested. Date from employer schema if available, not search crawl."
+    },
+    {
+      "company": "BR7 Technologies",
+      "kind": "page",
+      "slug": "626f64a7d05d",
+      "url": "https://br7tech.dev/careers/product-designer",
+      "website": "https://br7tech.dev",
+      "location": "Pakistan \u00b7 Remote",
+      "research_notes": "Visible posting April 14, 2026. Keep archived despite recent LinkedIn promotion."
+    },
+    {
+      "company": "SunAlgo",
+      "kind": "page",
+      "slug": "435426421d5c",
+      "url": "https://sunalgo.com/careers/product-designer",
+      "website": "https://sunalgo.com",
+      "location": "Remote worldwide",
+      "research_notes": "September 10 schema date; older than 30 days. Form found; not a recent recommendation."
+    },
+    {
+      "company": "Axra",
+      "kind": "page",
+      "slug": "0c3ac1da897b",
+      "url": "https://www.useaxra.com/careers/product-designer",
+      "website": "https://www.useaxra.com",
+      "location": "Remote worldwide",
+      "research_notes": "Email route listed; no original publication date established. Company identity and regulatory claims unverified."
+    },
+    {
+      "company": "UX Pilot",
+      "kind": "page",
+      "slug": "749240ce3592",
+      "url": "https://uxpilot.ai/careers",
+      "website": "https://uxpilot.ai",
+      "location": "Remote \u00b7 Europe preferred",
+      "research_notes": "Lead Product Designer: European overlap preferred. Exact publication date unknown; verify current specific role and application form."
+    },
+    {
+      "company": "Kestra",
+      "kind": "page",
+      "slug": "ef5336e9651b",
+      "website": "https://kestra.io",
+      "url": "https://kestra.io/careers"
+    },
+    {
+      "company": "Firecrawl",
+      "kind": "ashby",
+      "slug": "firecrawl",
+      "website": "https://www.firecrawl.dev"
+    },
+    {
+      "company": "Inngest",
+      "kind": "ashby",
+      "slug": "inngest",
+      "website": "https://www.inngest.com"
+    },
+    {
+      "company": "Trigger.dev",
+      "kind": "ashby",
+      "slug": "triggerdev",
+      "website": "https://trigger.dev"
+    },
+    {
+      "company": "Better Stack",
+      "kind": "page",
+      "slug": "b6b9982f841c",
+      "website": "https://betterstack.com",
+      "url": "https://betterstack.com/careers"
+    },
+    {
+      "company": "Dune",
+      "kind": "page",
+      "slug": "ad2793ca2cf7",
+      "website": "https://dune.com",
+      "url": "https://dune.com/careers"
+    },
+    {
+      "company": "RevenueCat",
+      "kind": "ashby",
+      "slug": "revenuecat",
+      "website": "https://www.revenuecat.com"
+    },
+    {
+      "company": "SafetyWing",
+      "kind": "page",
+      "slug": "94e4e8038be0",
+      "website": "https://safetywing.com",
+      "url": "https://safetywing.com/join-us"
+    },
+    {
+      "company": "Outliant",
+      "kind": "page",
+      "slug": "62c0ec6a419c",
+      "website": "https://outliant.com",
+      "url": "https://www.outliant.com/careers-new"
+    },
+    {
+      "company": "Contra",
+      "kind": "ashby",
+      "slug": "contra",
+      "website": "https://contra.com"
+    },
+    {
+      "company": "Slite",
+      "kind": "page",
+      "slug": "00dde9164895",
+      "website": "https://slite.com",
+      "url": "https://slite.com/jobs"
+    },
+    {
+      "company": "Ghost",
+      "kind": "page",
+      "slug": "24b6d8342680",
+      "website": "https://ghost.org",
+      "url": "https://careers.ghost.org/"
+    },
+    {
+      "company": "Doist",
+      "kind": "page",
+      "slug": "293b7a9e9756",
+      "website": "https://doist.com",
+      "url": "https://www.todoist.com/careers"
+    },
+    {
+      "company": "Toggl",
+      "kind": "page",
+      "slug": "814d85e8a531",
+      "website": "https://toggl.com",
+      "url": "https://toggl.com/jobs"
+    },
+    {
+      "company": "Float",
+      "kind": "page",
+      "slug": "1a01e3af22bf",
+      "website": "https://www.float.com",
+      "url": "https://www.float.com/careers"
+    },
+    {
+      "company": "Customer.io",
+      "kind": "greenhouse",
+      "slug": "customerio",
+      "website": "https://customer.io"
+    },
+    {
+      "company": "Maze",
+      "kind": "ashby",
+      "slug": "mazedesign",
+      "website": "https://maze.co"
+    },
+    {
+      "company": "Kittl",
+      "kind": "page",
+      "slug": "e4f7bfba16b9",
+      "website": "https://www.kittl.com",
+      "url": "https://www.kittl.com/careers"
+    },
+    {
+      "company": "DuckDuckGo",
+      "kind": "ashby",
+      "slug": "duck-duck-go",
+      "website": "https://duckduckgo.com"
+    },
+    {
+      "company": "hirehire",
+      "kind": "ashby",
+      "slug": "hirehire",
+      "website": "https://hirehire.me",
+      "research_notes": "Recruitment intermediary for named clients. Check each client country and language requirement. StellarTech requires Russian plus English and consumer mobile experience. SimpleStudy prefers Europe."
+    },
+    {
+      "company": "Agentplace",
+      "kind": "page",
+      "slug": "59a05ad67ef1",
+      "url": "https://agentplace.io/careers/agentic-ux-designer",
+      "website": "https://agentplace.io",
+      "location": "Worldwide",
+      "research_notes": "Remote contract; Himalayas advertises all countries. Employer lists role-specific email tasks. Confirm Pakistan contracting eligibility. Employer media and scale claims are not independently corroborated.",
+      "research_notes_by_url": {
+        "https://agentplace.io/careers/agentic-ux-designer": "Employer schema October 15; from $2,500/month. Email must include 3-5 proposed UI improvements. Task pay is not stated and employer says ideas may inform its product. Himalayas advertises worldwide; confirm Pakistan contracting eligibility.",
+        "https://agentplace.io/careers/brand-web-designer": "Employer schema October 28; from $3,800/month. Email requires portfolio plus a published sample agent, visual identity and launch designs. Task pay is not stated. Confirm Pakistan contracting eligibility."
+      }
+    }
+  ],
+  "arbeitnow_max_pages": 20,
+  "himalayas_daily_request_cap": 80,
+  "himalayas_pages_per_query": 3,
+  "himalayas_queries": [
+    "product designer",
+    "UX designer",
+    "UI designer",
+    "web designer",
+    "design engineer"
+  ],
+  "gemini_enabled": false,
+  "paid_apis_enabled": false
+}
