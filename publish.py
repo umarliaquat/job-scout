@@ -24,7 +24,7 @@ def build(output):
     output=Path(output).resolve()
     output.relative_to(scout.ROOT.resolve())
     output.mkdir(parents=True,exist_ok=True)
-    for name in ('style.css','layout.css','chips.css','finish.css','app.js','details.js','public.js'):
+    for name in ('style.css','layout.css','chips.css','finish.css','app.js','details.js','reading.js','public.js'):
         shutil.copyfile(scout.ROOT/'web'/name,output/name)
     shutil.copytree(scout.ROOT/'web/fonts',output/'fonts',dirs_exist_ok=True)
     html=(scout.ROOT/'web/index.html').read_text('utf-8')

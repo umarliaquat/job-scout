@@ -34,3 +34,7 @@ node tests/public_runtime.cjs
 The export uses an explicit field allowlist. It never publishes the private database, resume profile, notes, application states, API tokens, caches or raw source error paths. Public listings include original source attribution and application links. Employer legitimacy and country eligibility need independent review. Small-team claims are self-reported. There are no response probabilities or invented applicant counts.
 
 Inter Tight is self-hosted under the SIL Open Font License; see web/fonts/OFL.txt.
+
+### New arrivals and reading history
+
+The default New arrivals tab establishes the existing collection as a baseline on your first visit. Subsequent snapshots add unseen listing IDs to a persistent unread queue; changed dates and returning IDs do not reset reading history. The queue shows recent Best leads / Worth a chance roles, excludes applied and dismissed roles, and clears a role when you open its details. All listings remains available, with Viewed / Unviewed filters under More filters. New here means newly discovered in this browser, not newly posted by the employer. History is stored only in localStorage, separately from saves and notes. Clearing browser data or switching browsers resets it. The page warns when browser storage cannot be written. A public tab returning to the foreground after five minutes fetches the latest published snapshot.

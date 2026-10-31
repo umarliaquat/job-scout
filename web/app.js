@@ -1,6 +1,6 @@
 'use strict';
 
-let data={jobs:[],sources:[],scan:{}},view='discover',tabView='promising',limit=30,activeId=null,toastTimer;
+let data={jobs:[],sources:[],scan:{}},view='discover',tabView='arrivals',limit=30,activeId=null,toastTimer;
 
 let displayMode='table';
 
@@ -53,6 +53,8 @@ async function load(){
 
   $('#last-scan').textContent=data.last_run?'Last checked '+stamp(data.last_run.finished):'No scans yet';
 
+  const baseline=window.scoutReading.sync(data.jobs);
+  $('#reading-notice').textContent=window.scoutReading.persistent?(baseline?'Watching from today. Existing listings are your baseline; new arrivals will appear after a future refresh.':'New arrivals stay here until you open them. Viewed history stays in this browser. Listings that disappear and return keep their reading status.'):'Browser storage is unavailable. Reading history will be lost when you leave this page.';
   render();
 
  }catch(e){error(e.message);}
@@ -60,6 +62,7 @@ async function load(){
 }
 
 const contexts={
+ arrivals:'Newly discovered, unviewed roles dated within 30 days, with application evidence and Pakistan or flexible-location potential. New here does not mean newly posted.',
 
  promising:'Core design or product roles · dated within 30 days · application evidence · Pakistan or worldwide hiring advertised.',
 
@@ -73,7 +76,9 @@ const contexts={
 
 const designRole=j=>['Product design','Design engineering','Web / visual design'].includes(j.category);
 function roleScope(j){const c=$('#category').value;return !c||(c==='design'?designRole(j):j.category===c);}
-function matchesView(j){return view==='discover'?(tabView==='all'||j.priority===tabView&&available(j)):j.state===view;}
+const arrival=j=>window.scoutReading.isNew(j.id)&&available(j)&&['promising','stretch'].includes(j.priority)&&!closed(j);
+function readingChip(j){return window.scoutReading.isNew(j.id)?chip('New here','green'):window.scoutReading.isViewed(j.id)?chip('Viewed','neutral'):chip('Unviewed','blue');}
+function matchesView(j){return view==='discover'?(tabView==='arrivals'?arrival(j):tabView==='all'||j.priority===tabView&&available(j)):j.state===view;}
 
 function excerpt(j){return j.description.replace(/^(?:About(?: the)? (?:role|company)|Job description)[\s:–-]*/i,'').slice(0,420);}
 
@@ -103,13 +108,13 @@ function card(j){
 
  const reason=(j.opportunity_signals||[]).filter(x=>!x.endsWith(' role')).slice(0,2).join(' · ')||'Role title matches; hiring evidence needs checking.';
 
- return `<article class="opportunity-card"><div class="card-company"><span>${esc(j.company)}</span>${saveControl(j)}</div><button class="card-title" data-job="${esc(j.id)}">${esc(j.title)}</button><p class="card-location">${esc(j.location||'Location to confirm')}</p><p class="card-description">${esc(excerpt(j))}</p><p class="card-reason"><strong>Why look</strong> ${esc(reason)}</p><p class="card-catch"><strong>The catch</strong> ${esc(j.main_catch)}</p><div class="card-facts">${applicationChip(j)}${freshnessChip(j)}</div><button class="card-open" data-job="${esc(j.id)}">View role & evidence <span aria-hidden="true">↗</span></button></article>`;
+ return `<article class="opportunity-card"><div class="card-company"><span>${esc(j.company)}</span>${saveControl(j)}</div><button class="card-title" data-job="${esc(j.id)}">${esc(j.title)}</button><p class="card-location">${esc(j.location||'Location to confirm')}</p><p class="card-description">${esc(excerpt(j))}</p><p class="card-reason"><strong>Why look</strong> ${esc(reason)}</p><p class="card-catch"><strong>The catch</strong> ${esc(j.main_catch)}</p><div class="card-facts">${readingChip(j)}${applicationChip(j)}${freshnessChip(j)}</div><button class="card-open" data-job="${esc(j.id)}">View role & evidence <span aria-hidden="true">↗</span></button></article>`;
 
 }
 
 function table(jobs){
 
- return `<div class="table-scroll" role="region" aria-label="Opportunities table; scroll horizontally on small screens" tabindex="0"><table class="jobs-table"><caption class="sr-only">Opportunities with location, publication date, application evidence and trade-offs</caption><colgroup><col class="col-role"><col class="col-location"><col class="col-date"><col class="col-evidence"><col class="col-catch"><col class="col-save"></colgroup><thead><tr><th scope="col">Role & company</th><th scope="col">Location</th><th scope="col">Date</th><th scope="col">Application</th><th scope="col">Main consideration</th><th scope="col"><span class="sr-only">Save</span></th></tr></thead><tbody>${jobs.map(j=>`<tr><td><button class="table-title" data-job="${esc(j.id)}">${esc(j.title)}</button><span class="cell-secondary">${esc(j.company)}${j.state==='applied'?' · Applied':''}</span><span class="cell-category">${chip(j.category,"violet")}</span></td><td><span>${esc(locationLabel(j))}</span><span class="cell-secondary">${eligibilityChip(j)}</span></td><td><span class="date-value">${j.published?day(j.published):'Unknown'}</span><span class="cell-secondary">${esc(j.published?publicationLabel(j):'Not supplied')}</span>${freshnessChip(j)}</td><td><span class="application-state ${openEvidence(j)?'available':closed(j)?'closed':'uncertain'}">${applicationChip(j)}</span><span class="cell-secondary">${j.checked_at?'Checked '+day(j.checked_at):'Not checked'}</span></td><td><p class="table-catch">${esc(j.main_catch)}</p><button class="table-details" data-job="${esc(j.id)}" aria-label="View evidence for ${esc(j.title)} at ${esc(j.company)}">View evidence ↗</button></td><td>${saveControl(j)}</td></tr>`).join('')}</tbody></table></div>`;
+ return `<div class="table-scroll" role="region" aria-label="Opportunities table; scroll horizontally on small screens" tabindex="0"><table class="jobs-table"><caption class="sr-only">Opportunities with location, publication date, application evidence and trade-offs</caption><colgroup><col class="col-role"><col class="col-location"><col class="col-date"><col class="col-evidence"><col class="col-catch"><col class="col-save"></colgroup><thead><tr><th scope="col">Role & company</th><th scope="col">Location</th><th scope="col">Date</th><th scope="col">Application</th><th scope="col">Main consideration</th><th scope="col"><span class="sr-only">Save</span></th></tr></thead><tbody>${jobs.map(j=>`<tr><td><button class="table-title" data-job="${esc(j.id)}">${esc(j.title)}</button><span class="cell-secondary">${esc(j.company)}${j.state==='applied'?' · Applied':''}</span><span class="cell-category">${chip(j.category,"violet")}${readingChip(j)}</span></td><td><span>${esc(locationLabel(j))}</span><span class="cell-secondary">${eligibilityChip(j)}</span></td><td><span class="date-value">${j.published?day(j.published):'Unknown'}</span><span class="cell-secondary">${esc(j.published?publicationLabel(j):'Not supplied')}</span>${freshnessChip(j)}</td><td><span class="application-state ${openEvidence(j)?'available':closed(j)?'closed':'uncertain'}">${applicationChip(j)}</span><span class="cell-secondary">${j.checked_at?'Checked '+day(j.checked_at):'Not checked'}</span></td><td><p class="table-catch">${esc(j.main_catch)}</p><button class="table-details" data-job="${esc(j.id)}" aria-label="View evidence for ${esc(j.title)} at ${esc(j.company)}">View evidence ↗</button></td><td>${saveControl(j)}</td></tr>`).join('')}</tbody></table></div>`;
 
 }
 
@@ -133,6 +138,7 @@ function render(){
 
  for(const name of ['promising','stretch','review'])$(`#${name}-count`).textContent=data.jobs.filter(j=>j.priority===name&&available(j)&&roleScope(j)).length;
 
+ $('#arrivals-count').textContent=data.jobs.filter(j=>arrival(j)&&roleScope(j)).length;
  $('#all-count').textContent=data.jobs.filter(roleScope).length;
 
  document.querySelectorAll('[data-tab]').forEach(b=>{const selected=b.dataset.tab===tabView;b.classList.toggle('active',selected);b.setAttribute('aria-selected',String(selected));b.tabIndex=selected?0:-1;});
@@ -142,7 +148,7 @@ function render(){
 
  const query=$('#search').value.toLowerCase().trim(),category=$('#category').value,freshness=$('#freshness').value,eligibility=$('#eligibility').value;
 
- let jobs=data.jobs.filter(j=>matchesView(j)&&(!query||`${j.title} ${j.company} ${j.description} ${j.location}`.toLowerCase().includes(query))&&roleScope(j)&&(!eligibility||j.eligibility===eligibility)&&(!freshness||(freshness==='week'?j.age_days!==null&&j.age_days>=0&&j.age_days<=7:j.freshness===freshness)));
+ let jobs=data.jobs.filter(j=>matchesView(j)&&(!$('#reading-status').value||($('#reading-status').value==='viewed'?window.scoutReading.isViewed(j.id):!window.scoutReading.isViewed(j.id)))&&(!query||`${j.title} ${j.company} ${j.description} ${j.location}`.toLowerCase().includes(query))&&roleScope(j)&&(!eligibility||j.eligibility===eligibility)&&(!freshness||(freshness==='week'?j.age_days!==null&&j.age_days>=0&&j.age_days<=7:j.freshness===freshness)));
 
  const sort=$('#sort').value;jobs.sort((a,b)=>sort==='date'?(b.published||'').localeCompare(a.published||''):sort==='seen'?b.first_seen.localeCompare(a.first_seen):b.attention_rank-a.attention_rank);
 
@@ -150,15 +156,15 @@ function render(){
 
  $('#results-note').textContent=discover&&tabView==='all'?'Research collection · not recommendations':'Prioritized by evidence, not volume';
 
- const emptyTitle=discover&&tabView==='promising'?'No checked leads match this view.':'No roles match this view.';
+ const emptyTitle=discover&&tabView==='arrivals'?'You’re caught up on new arrivals.':discover&&tabView==='promising'?'No checked leads match this view.':'No roles match this view.';
 
- const emptyText=discover&&tabView==='promising'?'The current collection has no recent core roles that meet the application and location checks together. Worth a chance has roles with trade-offs; Needs checking contains leads that still need verification.':'Try clearing your filters or exploring a different priority. Saved and applied roles are kept separately.';
+ const emptyText=discover&&tabView==='arrivals'?'Existing listings are not counted again after a refresh. Check back after the morning update, or browse Best leads. New arrivals must also pass the recency, application and location checks.':discover&&tabView==='promising'?'The current collection has no recent core roles that meet the application and location checks together. Worth a chance has roles with trade-offs; Needs checking contains leads that still need verification.':'Try clearing your filters or exploring a different priority. Saved and applied roles are kept separately.';
 
  $('#results').className=jobs.length&&displayMode==='cards'?'card-grid':'';
 
  document.querySelectorAll('[data-layout]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.layout===displayMode)));
 
- $('#results').innerHTML=jobs.length?(displayMode==='table'?table(jobs.slice(0,limit)):jobs.slice(0,limit).map(card).join('')):`<div class="empty"><h2>${data.jobs.length?emptyTitle:'Start with a fresh search.'}</h2><p>${data.jobs.length?emptyText:'Find recent remote design and product roles, then inspect the evidence before deciding where to apply.'}</p>${data.jobs.length?'<button data-empty="stretch">Explore roles worth a chance</button><button data-empty="clear">Clear filters</button>':'<button data-empty="scan" class="primary">Find opportunities</button>'}</div>`;
+ $('#results').innerHTML=jobs.length?(displayMode==='table'?table(jobs.slice(0,limit)):jobs.slice(0,limit).map(card).join('')):`<div class="empty"><h2>${data.jobs.length?emptyTitle:'Start with a fresh search.'}</h2><p>${data.jobs.length?emptyText:'Find recent remote design and product roles, then inspect the evidence before deciding where to apply.'}</p>${data.jobs.length?'<button data-empty="promising">Browse best leads</button><button data-empty="clear">Clear filters</button>':'<button data-empty="scan" class="primary">Find opportunities</button>'}</div>`;
 
  $('#more').hidden=jobs.length<=limit;
 
@@ -168,7 +174,7 @@ function changeView(next){view=next;limit=30;document.querySelectorAll('.nav').f
 
 function changeTab(next){tabView=next;limit=30;render();}
 
-function clearFilters(){for(const s of ['#search','#freshness','#eligibility'])$(s).value='';$('#category').value='design';render();}
+function clearFilters(){for(const s of ['#search','#freshness','#eligibility','#reading-status'])$(s).value='';$('#category').value='design';render();}
 
 function sourceName(name){return ({arbeitnow:'Arbeitnow · Europe',arbeitnow_uk:'Arbeitnow · United Kingdom',himalayas:'Himalayas · remote jobs',wwr:'We Work Remotely',remoteok:'Remote OK',jobicy:'Jobicy',remotive:'Remotive'})[name]||name.replace(/^ashby:/,'Ashby · ').replace(/^greenhouse:/,'Greenhouse · ').replace(/^workable:/,'Workable · ').replace(/^page:/,'Employer page · ');}
 function renderSources(){$('.coverage-note p').textContent=window.SCOUT_PUBLIC?'Public source checks from the last collection. Failed checks are kept visible; they do not mean a company has stopped hiring.':'Follow smaller companies and inspect source checks. A failed check does not mean a company has stopped hiring.';$('#source-list').innerHTML=data.sources.map(s=>`<div class="source-row"><strong>${esc(sourceName(s.name))}</strong><span>${badge(s.status,s.status==='error'?'bad':s.status==='pending'?'warn':'good')}</span><span>${esc(s.detail)}<br>Checked ${stamp(s.checked)}</span></div>`).join('')||'<p>No sources checked yet. Run a scan to begin.</p>';}
@@ -185,13 +191,14 @@ $('#discovery-tabs').addEventListener('click',e=>{const b=e.target.closest('[dat
 
 $('#discovery-tabs').addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const tabs=[...document.querySelectorAll('[data-tab]')];const index=tabs.findIndex(x=>x.dataset.tab===tabView);const next=e.key==='Home'?0:e.key==='End'?tabs.length-1:(index+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;changeTab(tabs[next].dataset.tab);tabs[next].focus();});
 
-$('#results').addEventListener('click',e=>{const save=e.target.closest('[data-save]'),job=e.target.closest('[data-job]'),empty=e.target.closest('[data-empty]');if(save)quickSave(save.dataset.save,save);else if(job)showJob(job.dataset.job);else if(empty){if(empty.dataset.empty==='scan')startScan();else if(empty.dataset.empty==='clear')clearFilters();else{clearFilters();changeTab('stretch');}}});
+$('#results').addEventListener('click',e=>{const save=e.target.closest('[data-save]'),job=e.target.closest('[data-job]'),empty=e.target.closest('[data-empty]');if(save)quickSave(save.dataset.save,save);else if(job)showJob(job.dataset.job);else if(empty){if(empty.dataset.empty==='scan')startScan();else if(empty.dataset.empty==='clear')clearFilters();else{clearFilters();changeTab('promising');}}});
 
 $('#close-detail').addEventListener('click',()=>$('#detail').close());
+$('#detail').addEventListener('close',()=>{if(tabView==='arrivals')$('#results').focus();});
 
 $('#detail').addEventListener('click',e=>{if(e.target===$('#detail')&&e.offsetX<0)$('#detail').close();});
 
-for(const s of ['#search','#category','#freshness','#eligibility','#sort'])$(s).addEventListener(s==='#search'?'input':'change',()=>{limit=30;render();});
+for(const s of ['#search','#category','#freshness','#eligibility','#reading-status','#sort'])$(s).addEventListener(s==='#search'?'input':'change',()=>{limit=30;render();});
 
 $('#filter-toggle').addEventListener('click',()=>{const hidden=!$('#extra-filters').hidden;$('#extra-filters').hidden=hidden;$('#filter-toggle').setAttribute('aria-expanded',String(!hidden));});
 
@@ -206,3 +213,11 @@ $('#add-source').addEventListener('submit',async e=>{e.preventDefault();const b=
 $('#detail').addEventListener('click',e=>{if(e.target===$('#detail')){const r=$('#detail').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$('#detail').close();}});
 load();setInterval(()=>{if(data.scan.running)load();},2500);
 
+
+// Reopen a tab the next morning without leaving yesterday’s snapshot on screen.
+let lastSnapshotCheck=Date.now();
+document.addEventListener('visibilitychange',async()=>{
+ if(!window.SCOUT_PUBLIC||document.visibilityState!=='visible'||Date.now()-lastSnapshotCheck<300000)return;
+ lastSnapshotCheck=Date.now();
+ try{await api('/api/scan',{});await load();}catch(e){error(e.message);}
+});
