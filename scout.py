@@ -33,6 +33,14 @@ DATA = ROOT / 'data'
 UTC = timezone.utc
 AGENT = 'PersonalJobScout/1.0 (personal read-only job research)'
 MAX_BYTES = 5_000_000
+class SourceNeedsReview(ValueError):
+    """Readable page, but automated vacancy coverage cannot be established."""
+    def __init__(self, message, jobs=None):
+        super().__init__(message)
+        self.jobs = jobs or []
+
+class SourceNoMatches(ValueError):
+    """Employer data was read successfully and contains no matching remote roles."""
 STATE = {'running': False, 'message': 'Ready to scan', 'last_result': None}
 LOCK = threading.Lock()
 TOKEN = secrets.token_urlsafe(32)
@@ -106,9 +114,11 @@ def _fetch(url, cache_hours=0):
         return record['text'], record['url'], True
     req = Request(url, headers={'User-Agent': AGENT, 'Accept': 'application/json,text/html,application/rss+xml;q=0.9,*/*;q=0.8'})
     with build_opener(SafeRedirect()).open(req, timeout=15) as response:
-        content = response.read(MAX_BYTES + 1)
-        if len(content) > MAX_BYTES:
-            raise ValueError('Page exceeds 5 MB limit')
+        # Large employer boards legitimately exceed the ordinary HTML-page limit.
+        limit = 15_000_000 if urlparse(url).hostname == 'api.ashbyhq.com' else MAX_BYTES
+        content = response.read(limit + 1)
+        if len(content) > limit:
+            raise ValueError(f'Page exceeds {limit // 1_000_000} MB limit')
         text = content.decode(response.headers.get_content_charset() or 'utf-8', errors='replace')
         final = response.url
     if cache_hours:
@@ -149,6 +159,10 @@ def config():
     extra = DATA / 'employers.json'
     if extra.exists():
         cfg['boards'] += json.loads(extra.read_text('utf-8'))
+    for board in cfg['boards']:
+        if board['kind']=='page':
+            adapter=board_from_url(board.get('url',''),board['company'],board.get('website',''))
+            if adapter: board.update(adapter)
     cfg['boards'] = list({b['kind'] + ':' + b.get('slug', b.get('url','')):b for b in cfg['boards']}.values())
     return cfg
 
@@ -393,7 +407,15 @@ def arbeitnow_jobs(name,hours):
     label='Arbeitnow UK' if name=='arbeitnow_uk' else 'Arbeitnow Europe'
     cap=min(30,max(1,int(cfg.get('arbeitnow_max_pages',20))))
     for page in range(1,cap+1):
-        data,hit=json_fetch(f'https://{host}/api/job-board-api?'+urlencode({'page':page}),hours)
+        if page>1: time.sleep(1.1)
+        try:
+            data,hit=json_fetch(f'https://{host}/api/job-board-api?'+urlencode({'page':page}),hours)
+        except HTTPError as e:
+            # Do not retry a provider throttle. Preserve readable earlier pages,
+            # but report incomplete pagination rather than claiming full coverage.
+            if jobs:
+                raise SourceNeedsReview(f'Partial pagination: {len(jobs)} matching jobs on earlier pages; HTTP {e.code} stopped page {page}.',jobs) from e
+            raise
         cached=cached and hit
         items=data.get('data',[])
         if not items: break
@@ -598,6 +620,23 @@ def career_page_jobs(board, hours):
         raise ValueError('Robots policy does not permit checking this page')
     text, final, cached = fetch(url, hours)
     page = Page(); page.feed(text)
+    linked_board = board_from_url(final, board['company'], board['website'])
+    if linked_board:
+        return board_jobs(linked_board,hours)
+    # Some public career pages embed the ATS instead of linking individual roles.
+    # Only follow exact employer-published ATS URLs, never guessed company slugs.
+    ats_urls = [urljoin(final,h) for h,_ in page.links]
+    ats_urls += re.findall(r'https://(?:jobs\.ashbyhq\.com|jobs\.lever\.co|apply\.workable\.com|(?:job-boards|boards)\.greenhouse\.io)/[^\s"<>\\]+',html.unescape(text))
+    delegated = []
+    for target in dict.fromkeys(ats_urls):
+        candidate = board_from_url(target,board['company'],board['website'])
+        if candidate and candidate not in delegated:
+            delegated.append(candidate)
+    if delegated:
+        found=[];hits=True
+        for candidate in delegated[:3]:
+            records,hit=board_jobs(candidate,hours);found.extend(records);hits=hits and hit
+        return list({j['id']:j for j in found}.values()),cached and hits
     candidates = [(final, page)]
     # Follow actual role links, never interpret a careers summary as an open vacancy.
     links = [(urljoin(final, href), label) for href,label in page.links if role(plain(label)) and href]
@@ -633,10 +672,12 @@ def career_page_jobs(board, hours):
         body=plain(' '.join(p.parts))
         if not page_jobs and role(plain(board.get('title') or p.heading)):
             emails=[h for h,label in p.links if h.startswith('mailto:') and re.search(r'apply|application|careers|hiring|jobs|\bhr\b',h+' '+label,re.I)]
-            applying=bool(emails or application_form(p) or any(re.search(r'\bapply\b',label,re.I) for _,label in p.links))
+            applying=bool(emails or application_form(p) or any(re.search(r'\bapply\b',label,re.I) for _,label in p.links) or re.search(r'\bapply now\b|\bhow to apply\b',body,re.I))
             evergreen=bool(re.search(r'evergreen|open applications year.round|not fixed openings|no active listing required|not always hiring',body,re.I))
             if applying and not evergreen:
                 location=board.get('location','')
+                if not location and re.search(r'\bremote\b',body[:400],re.I):
+                    location='Remote · country unconfirmed'
                 j=make_job(board['company'],board.get('title') or p.heading,location,body,target,'Employer page: '+board['company'])
                 if j:
                     posted=re.search(r'\b(?:Posted|Published)(?:\s+on)?\s*:?\s*((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}|\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})',body,re.I)
@@ -652,7 +693,10 @@ def career_page_jobs(board, hours):
             j['company_evidence']=board.get('company_evidence',[])
             jobs.append(j)
     if not jobs:
-        raise ValueError('No matching structured remote vacancies established. The page may be JavaScript-rendered, closed, or lack JobPosting data; inspect manually.')
+        body=plain(' '.join(page.parts))
+        if list(posting_blocks(page.blocks)) or re.search(r'no (?:current |open |available )?(?:positions|vacancies|openings)|not currently hiring',body,re.I):
+            raise SourceNoMatches('Readable employer vacancy data; no matching remote roles found.')
+        raise SourceNeedsReview('Career page readable, but complete vacancy data is unavailable to this parser. Manual check required; not counted as successful coverage.')
     return jobs, cached
 
 
@@ -902,6 +946,11 @@ def scan():
                     logs.append((name, now(), 'cached' if cached else 'ok', f'{len(jobs)} relevant remote roles'))
                     if ':' in name and not cached:
                         successful_boards.add(name)
+                except SourceNoMatches as e:
+                    logs.append((name, now(), 'no_matches', str(e)))
+                except SourceNeedsReview as e:
+                    all_jobs.extend(e.jobs)
+                    logs.append((name, now(), 'manual', str(e)))
                 except Exception as e:
                     logs.append((name, now(), 'error', str(e)[:300]))
                 STATE['message'] = f'Read {len(logs)}/{len(tasks)} sources · {len(all_jobs)} role matches'

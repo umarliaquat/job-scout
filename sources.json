@@ -292,18 +292,16 @@
     },
     {
       "company": "Pavago",
-      "kind": "page",
-      "slug": "38941d36d833",
-      "url": "https://apply.workable.com/pavago/j/786384024A/",
+      "kind": "workable",
+      "slug": "pavago",
       "website": "https://pavago.co",
       "location": "Pakistan \u00b7 Remote",
       "research_notes": "Recruiter for unnamed client. Strong UX role match. Workable page needs JavaScript; do not infer posting date from search crawl."
     },
     {
       "company": "Huzzle",
-      "kind": "page",
-      "slug": "16b2fc0aad77",
-      "url": "https://apply.workable.com/huzzle/j/D56C548DBA/",
+      "kind": "workable",
+      "slug": "huzzle",
       "website": "https://huzzle.com",
       "location": "Pakistan \u00b7 Remote",
       "research_notes": "Recruiter for unnamed client. Direct listing includes Pakistan; another source dates it September 17, so freshness is not established as recent."

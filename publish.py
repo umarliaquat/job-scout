@@ -23,7 +23,38 @@ def version_assets(html, output):
         return match.group(1) + './' + version + '"'
     return re.sub(r'((?:src|href)=")\./([a-z-]+\.(?:css|js))"', replace, html)
 
-def public_snapshot(snapshot):
+def source_detail(source):
+    detail=source.get('detail','')
+    if source['status']=='manual':
+        return 'Partial results; later pages could not be fetched.' if detail.startswith('Partial pagination') else 'Page readable; vacancy coverage requires a manual check.'
+    if source['status']!='error':
+        return detail
+    if '429' in detail or 'daily safety cap' in detail:
+        return 'Rate limit reached; no paid fallback or access bypass. Retry on a later collection.'
+    if '404' in detail:
+        return 'Configured hiring endpoint was not found. Employer link needs review.'
+    if '502' in detail or '503' in detail or '504' in detail:
+        return 'Provider temporarily unavailable. Retried at the next collection.'
+    if 'exceeds' in detail:
+        return 'Response exceeds the bounded download limit.'
+    return 'Could not establish readable vacancy data; check the source manually.'
+
+def collection_report(jobs, previous):
+    if not previous or not previous.get('jobs'):
+        return dict(comparison_available=False)
+    known={j['id'] for j in previous['jobs']}
+    added=[j for j in jobs if j['id'] not in known]
+    design=[j for j in added if j['category'] in ('Product design','Design engineering','Web / visual design')]
+    counts=dict(older_or_closed=0,undated=0,application_unverified=0,other_review=0)
+    for j in design:
+        if j['priority'] in ('promising','stretch'): continue
+        if j['priority']=='archive': counts['older_or_closed']+=1
+        elif j.get('freshness')!='Recent': counts['undated']+=1
+        elif j.get('verification') not in ('Application form found','Application steps found','Email applications listed'): counts['application_unverified']+=1
+        else: counts['other_review']+=1
+    return dict(comparison_available=True,previous_collection=previous.get('last_run',{}).get('finished'),added_total=len(added),added_design=len(design),qualified_design=sum(j['priority'] in ('promising','stretch') for j in design),excluded=counts)
+
+def public_snapshot(snapshot,previous=None):
     jobs=[]
     for raw in snapshot['jobs']:
         j={key:raw[key] for key in PUBLIC_FIELDS if key in raw}
@@ -32,7 +63,8 @@ def public_snapshot(snapshot):
         j=scout.opportunity(scout.score(j,30))
         jobs.append(j)
     return dict(jobs=sorted(jobs,key=lambda j:j['attention_rank'],reverse=True),
-                sources=[dict(name=s['name'],status=s['status'],checked=s['checked'],detail='Could not establish readable vacancy data; check the source manually.' if s['status']=='error' else s['detail']) for s in snapshot['sources']],
+                sources=[dict(name=s['name'],status=s['status'],checked=s['checked'],detail=source_detail(s)) for s in snapshot['sources']],
+                collection_report=collection_report(jobs,previous),
                 scan=dict(running=False,message='Published snapshot'),last_run={'finished':snapshot['last_run']['finished']} if snapshot.get('last_run') else None,
                 profile_loaded=False,public=True)
 
@@ -40,6 +72,10 @@ def build(output):
     output=Path(output).resolve()
     output.relative_to(scout.ROOT.resolve())
     output.mkdir(parents=True,exist_ok=True)
+    try:
+        previous=json.loads((output/'jobs.json').read_text('utf-8'))
+    except (OSError,ValueError):
+        previous=None
     for name in ('style.css','layout.css','chips.css','finish.css','app.js','details.js','reading.js','public.js'):
         shutil.copyfile(scout.ROOT/'web'/name,output/name)
     shutil.copytree(scout.ROOT/'web/fonts',output/'fonts',dirs_exist_ok=True)
@@ -49,7 +85,7 @@ def build(output):
     html=version_assets(html,output)
     (output/'index.html').write_text(html,'utf-8')
     (output/'.nojekyll').write_text('','utf-8')
-    data=public_snapshot(scout.snapshot())
+    data=public_snapshot(scout.snapshot(),previous)
     (output/'jobs.json').write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')),'utf-8')
     print(f'Built {len(data["jobs"])} public listings in {output}; private profile and tracking omitted.')
 

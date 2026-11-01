@@ -135,6 +135,28 @@ function table(jobs){
 
 }
 
+function arrivalsEmpty(){
+ const sources=data.sources||[],worked=sources.filter(s=>['ok','cached','no_matches'].includes(s.status)).length;
+ const failed=sources.filter(s=>s.status==='error').length,manual=sources.filter(s=>s.status==='manual').length,pending=sources.filter(s=>s.status==='pending').length;
+ const ran=data.last_run?.finished;
+ const when=ran?new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Karachi',dateStyle:'medium',timeStyle:'short'}).format(new Date(ran))+' PKT':'No completed search recorded';
+ const report=data.collection_report,queue=data.jobs.filter(j=>arrival(j)&&roleScope(j)).length;
+ const filters=queue>0;
+ let reason=filters?'New arrivals exist, but your current filters hide them. Clear filters to see them.':'Existing jobs are not counted again. Opening a role removes it from New arrivals; your first visit establishes the existing collection as a baseline.';
+ let outcome='';
+ if(report?.comparison_available){
+  outcome=`Compared with the previous collection: ${report.added_total} new listings across all roles, ${report.added_design} design roles, ${report.qualified_design} qualifying design roles.`;
+  if(!filters&&report.qualified_design===0){
+   const labels={older_or_closed:'older, closed or future-dated',undated:'without a confirmed recent posting date',application_unverified:'without a verified application route',other_review:'requiring further review'};
+   const reasons=Object.entries(report.excluded||{}).filter(([,n])=>n>0).map(([key,n])=>`${n} ${labels[key]||'requiring review'}`);
+   reason=report.added_design?`New design listings did not qualify: ${reasons.join('; ')}.`:'No newly discovered design roles were found in this collection. Existing jobs were not counted again.';
+  }
+ }else outcome='No previous-collection comparison is available yet; this is not evidence that no jobs exist elsewhere.';
+ const coverage=sources.length?`${worked} of ${sources.length} sources worked`:'Source results unavailable';
+ const gaps=[failed?`${failed} failed`:null,manual?`${manual} need manual checking`:null,pending?`${pending} not checked`:null].filter(Boolean).join(' · ');
+ return `<div class="empty"><h2>${filters?'New arrivals are hidden by filters':'No new arrivals to show'}</h2><dl class="empty-search-report"><div><dt>Last completed search</dt><dd>${esc(when)}</dd></div><div><dt>Source coverage</dt><dd>${esc(coverage)}${gaps?`<small>${esc(gaps)}</small>`:''}</dd></div></dl><p>${esc(outcome)}</p><p>${esc(reason)}</p>${gaps?'<p class="coverage-gap">Coverage is incomplete. Failed or unreadable sources may contain jobs we missed.</p>':''}<button data-empty="promising">Browse best leads</button><button data-empty="review">Review unchecked leads</button>${filters?'<button data-empty="clear">Clear filters</button>':''}</div>`;
+}
+
 function render(){
 
  const discover=view==='discover',sources=view==='sources';
@@ -181,7 +203,7 @@ function render(){
 
  document.querySelectorAll('[data-layout]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.layout===displayMode)));
 
- $('#results').innerHTML=jobs.length?(displayMode==='table'?table(jobs.slice(0,limit)):jobs.slice(0,limit).map(card).join('')):`<div class="empty"><h2>${data.jobs.length?emptyTitle:'Start with a fresh search.'}</h2><p>${data.jobs.length?emptyText:'Find recent remote design and product roles, then inspect the evidence before deciding where to apply.'}</p>${data.jobs.length?'<button data-empty="promising">Browse best leads</button><button data-empty="clear">Clear filters</button>':'<button data-empty="scan" class="primary">Find opportunities</button>'}</div>`;
+ $('#results').innerHTML=jobs.length?(displayMode==='table'?table(jobs.slice(0,limit)):jobs.slice(0,limit).map(card).join('')):discover&&tabView==='arrivals'?arrivalsEmpty():`<div class="empty"><h2>${data.jobs.length?emptyTitle:'Start with a fresh search.'}</h2><p>${data.jobs.length?emptyText:'Find recent remote design and product roles, then inspect the evidence before deciding where to apply.'}</p>${data.jobs.length?'<button data-empty="promising">Browse best leads</button><button data-empty="clear">Clear filters</button>':'<button data-empty="scan" class="primary">Find opportunities</button>'}</div>`;
 
  $('#more').hidden=jobs.length<=limit;
 
@@ -194,7 +216,7 @@ function changeTab(next){tabView=next;limit=30;render();}
 function clearFilters(){for(const s of ['#search','#freshness','#eligibility','#reading-status'])$(s).value='';$('#category').value='design';render();}
 
 function sourceName(name){return ({arbeitnow:'Arbeitnow · Europe',arbeitnow_uk:'Arbeitnow · United Kingdom',himalayas:'Himalayas · remote jobs',wwr:'We Work Remotely',remoteok:'Remote OK',jobicy:'Jobicy',remotive:'Remotive'})[name]||name.replace(/^ashby:/,'Ashby · ').replace(/^greenhouse:/,'Greenhouse · ').replace(/^workable:/,'Workable · ').replace(/^page:/,'Employer page · ');}
-function renderSources(){$('.coverage-note p').textContent=window.SCOUT_PUBLIC?'Public source checks from the last collection. Failed checks are kept visible; they do not mean a company has stopped hiring.':'Follow smaller companies and inspect source checks. A failed check does not mean a company has stopped hiring.';$('#source-list').innerHTML=data.sources.map(s=>`<div class="source-row"><strong>${esc(sourceName(s.name))}</strong><span>${badge(s.status,s.status==='error'?'bad':s.status==='pending'?'warn':'good')}</span><span>${esc(s.detail)}<br>Checked ${stamp(s.checked)}</span></div>`).join('')||'<p>No sources checked yet. Run a scan to begin.</p>';}
+function renderSources(){$('.coverage-note p').textContent=window.SCOUT_PUBLIC?'Public source checks from the last collection. Failed checks are kept visible; they do not mean a company has stopped hiring.':'Follow smaller companies and inspect source checks. A failed check does not mean a company has stopped hiring.';$('#source-list').innerHTML=data.sources.map(s=>`<div class="source-row"><strong>${esc(sourceName(s.name))}</strong><span>${badge(s.status,s.status==='error'?'bad':['pending','manual'].includes(s.status)?'warn':'good')}</span><span>${esc(s.detail)}<br>Checked ${stamp(s.checked)}</span></div>`).join('')||'<p>No sources checked yet. Run a scan to begin.</p>';}
 
 let refreshBusy=false;
 async function startScan(){
@@ -220,7 +242,7 @@ $('#discovery-tabs').addEventListener('click',e=>{const b=e.target.closest('[dat
 
 $('#discovery-tabs').addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const tabs=[...document.querySelectorAll('[data-tab]')];const index=tabs.findIndex(x=>x.dataset.tab===tabView);const next=e.key==='Home'?0:e.key==='End'?tabs.length-1:(index+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;changeTab(tabs[next].dataset.tab);tabs[next].focus();});
 
-$('#results').addEventListener('click',e=>{const save=e.target.closest('[data-save]'),job=e.target.closest('[data-job]'),empty=e.target.closest('[data-empty]');if(save)quickSave(save.dataset.save,save);else if(job)showJob(job.dataset.job);else if(empty){if(empty.dataset.empty==='scan')startScan();else if(empty.dataset.empty==='clear')clearFilters();else{clearFilters();changeTab('promising');}}});
+$('#results').addEventListener('click',e=>{const save=e.target.closest('[data-save]'),job=e.target.closest('[data-job]'),empty=e.target.closest('[data-empty]');if(save)quickSave(save.dataset.save,save);else if(job)showJob(job.dataset.job);else if(empty){if(empty.dataset.empty==='scan')startScan();else if(empty.dataset.empty==='clear')clearFilters();else{clearFilters();changeTab(empty.dataset.empty);}}});
 
 $('#close-detail').addEventListener('click',()=>$('#detail').close());
 $('#detail').addEventListener('close',()=>{if(tabView==='arrivals')$('#results').focus();});

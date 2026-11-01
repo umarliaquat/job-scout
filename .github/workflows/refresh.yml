@@ -1,6 +1,11 @@
 name: Refresh public job research
 on:
   workflow_dispatch:
+    inputs:
+      force_collection:
+        description: "Run a repair collection even if today already succeeded"
+        type: boolean
+        default: false
   schedule:
     # 07:23 PKT primary; 09:23 and 10:23 PKT recovery attempts.
     - cron: '23 2,4,5 * * *'
@@ -23,6 +28,8 @@ jobs:
           node tests/reading_runtime.cjs
       - name: Skip collection if already successful today in Pakistan
         id: plan
+        env:
+          FORCE_COLLECTION: ${{ inputs.force_collection }}
         run: python3 -B refresh_control.py plan
       - name: Restore daily public API request counter
         if: steps.plan.outputs.collect == 'true'
