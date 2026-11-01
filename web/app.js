@@ -54,6 +54,7 @@ async function load(){
   updateRefreshStatus();
 
   const baseline=window.scoutReading.sync(data.jobs);
+  $('#reading-notice').hidden=window.scoutReading.persistent&&!baseline;
   $('#reading-notice').textContent=window.scoutReading.persistent?(baseline?'Watching from today. Existing listings are your baseline; new arrivals will appear after a future refresh.':'New arrivals stay here until you open them. Viewed history stays in this browser. Listings that disappear and return keep their reading status.'):'Browser storage is unavailable. Reading history will be lost when you leave this page.';
   render();return true;
 
@@ -64,15 +65,15 @@ async function load(){
 function updateRefreshStatus(){
  const finished=data.last_run?.finished,valid=finished&&Number.isFinite(Date.parse(finished));
  const time=valid?new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Karachi',dateStyle:'medium',timeStyle:'short'}).format(new Date(finished))+' PKT':'Not available';
- $('#last-scan').textContent=valid?'Last successful refresh: '+time:'No successful refresh recorded';
- $('#refresh-time').textContent=valid?'Last successful collection: '+time:'No successful collection recorded';
+ $('#last-scan').textContent=valid?'Last successful collection: '+time:'No successful collection recorded';
  const pkParts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Karachi',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23',minute:'2-digit'}).formatToParts(new Date());
  const parts=Object.fromEntries(pkParts.map(p=>[p.type,p.value]));
  const today=parts.year+'-'+parts.month+'-'+parts.day;
  const date=valid?new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Karachi',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(finished)):'';
  const overdue=!valid||Date.now()-Date.parse(finished)>26*3600000||(Number(parts.hour)*60+Number(parts.minute)>=645&&date!==today);
- $('.refresh-status').classList.toggle('overdue',overdue);
- $('#refresh-help').textContent=window.SCOUT_PUBLIC?(overdue?'Morning update is overdue. Refresh jobs checks the published file; it cannot start the collector. Check the refresh run for failures.':'Morning collection: 7:23 AM Pakistan, with backup attempts at 9:23 and 10:23 AM. Refresh jobs loads the latest published results; it does not start a crawl.'):'This is the local collector. Automatic morning updates appear on the public site; Search sources now runs a local crawl.';
+ $('#last-scan').classList.toggle('overdue',overdue);
+ if(overdue)$('#last-scan').textContent+=' · Overdue';
+ $('#last-scan').title=window.SCOUT_PUBLIC?(overdue?'Morning update is overdue. Refresh jobs checks the published file; it cannot start the collector. Check the refresh run for failures.':'Morning collection: 7:23 AM Pakistan, with backup attempts at 9:23 and 10:23 AM. Refresh jobs loads the latest published results; it does not start a crawl.'):'This is the local collector. Automatic morning updates appear on the public site; Search sources now runs a local crawl.';
  $('#scan').title=window.SCOUT_PUBLIC?'Load the latest published jobs without calling job-feed APIs':'Fetch job feeds and check application pages';
 }
 

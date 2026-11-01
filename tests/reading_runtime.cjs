@@ -37,9 +37,9 @@ vm.createContext(ui);vm.runInContext(code,ui);vm.runInContext(fs.readFileSync('w
  assert.equal(node('#visible-count').textContent,1);
  ui.window.SCOUT_PUBLIC=true;
  await vm.runInContext('startScan()',ui);
- assert.match(node('#refresh-time').textContent,/Last successful collection:.*PKT/);
+ assert.match(node('#last-scan').textContent,/Last successful collection:.*PKT/);
  assert.equal(node('#scan').textContent,'Refresh jobs');
  assert.match(node('#toast').textContent,/latest published jobs/);
- assert.match(node('#refresh-help').textContent,/does not start a crawl/);
+ assert.match(node('#last-scan').title,/does not start a crawl/);
  console.log('Interface checks passed: baseline empty state, new queue, chips, viewed removal and unviewed filter.');
 })().catch(e=>{console.error(e);process.exitCode=1});
