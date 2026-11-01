@@ -23,3 +23,6 @@ dialog{padding:64px 40px 36px;max-width:min(780px,100vw);background:#fff}.detail
 @media(max-width:1200px){.page-content{padding:22px 24px}.topbar{padding-inline:24px}}
 @media(max-width:1000px){.view-context{gap:6px}}
 @media(max-width:780px){.topbar{min-height:52px;padding:10px 20px}.topbar #last-scan{font-size:12px;max-width:100%;text-align:right;margin-left:auto}.page-content{padding:20px}.intro{gap:12px;margin-bottom:12px}.intro h1{font-size:27px}.intro p{font-size:14px}.tabs{gap:20px}.view-context{padding:8px 0 10px}.results-heading{margin:12px 0 10px}}
+
+/* Cap dashboard side gutters at 20px at every viewport width. */
+.page-content{max-width:none;margin-inline:0;padding-inline:20px}.topbar{padding-inline:20px}

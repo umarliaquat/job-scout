@@ -18,12 +18,15 @@ storage.set('job-scout-reading-v1','{"known":null}');reader=open();assert.equal(
 reader=open(true);reader.sync([{id:'another'}]);assert.equal(reader.persistent,false,'Storage failure is exposed to the interface');
 console.log('Reading history checks passed: baseline, arrivals, reloads, viewed, returning IDs, corrupt and blocked storage.');
 const nodes=new Map();
+const actualHtml=fs.readFileSync('web/index.html','utf8');
+const actualIds=new Set([...actualHtml.matchAll(/id="([^"]+)"/g)].map(m=>m[1]));
 function node(selector){if(!nodes.has(selector))nodes.set(selector,{value:selector==='#category'?'design':'',textContent:'',innerHTML:'',hidden:false,dataset:{},classList:{toggle(){}},setAttribute(){},addEventListener(){},focus(){}});return nodes.get(selector);}
 const jobs=[{id:'baseline',title:'Designer',company:'Studio',category:'Product design',priority:'promising',state:'new',description:'Design products',verification:'Application form found',date_basis:'Listing date',freshness:'Recent',age_days:1,location:'Worldwide',eligibility:'Worldwide advertised',published:new Date().toISOString(),checked_at:new Date().toISOString(),first_seen:new Date().toISOString(),main_catch:'Check company',attention_rank:10}];
-const uiStorage=new Map(),ui={window:{scoutApi:async()=>({jobs:structuredClone(jobs),sources:[],scan:{},last_run:{finished:'2026-11-01T07:40:13+00:00'}})},document:{querySelector:node,querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:k=>uiStorage.get(k)||null,setItem:(k,v)=>uiStorage.set(k,v)},setInterval(){},setTimeout(){},clearTimeout(){},Date,URL};
+const uiStorage=new Map(),ui={window:{scoutApi:async()=>({jobs:structuredClone(jobs),sources:[],scan:{},last_run:{finished:'2026-11-01T07:40:13+00:00'}})},document:{querySelector:s=>s.startsWith('#')&&!actualIds.has(s.slice(1))?null:node(s),querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:k=>uiStorage.get(k)||null,setItem:(k,v)=>uiStorage.set(k,v)},setInterval(){},setTimeout(){},clearTimeout(){},Date,URL};
 vm.createContext(ui);vm.runInContext(code,ui);vm.runInContext(fs.readFileSync('web/app.js','utf8'),ui);
 (async()=>{
  await new Promise(setImmediate);
+ assert.equal(node('#error').textContent,'','App must load with the actual HTML element IDs');
  assert.match(node('#results').innerHTML,/caught up/);
  jobs.push({...jobs[0],id:'arrival'});
  await vm.runInContext('load()',ui);

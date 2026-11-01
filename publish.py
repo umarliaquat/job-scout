@@ -1,11 +1,27 @@
 """Build a public static site. Explicit allowlist: never copy private workspace files."""
 import argparse
+import hashlib
 import json
+import re
 from pathlib import Path
 import shutil
 import scout
 
 PUBLIC_FIELDS='id company title category location description url source sources eligibility eligibility_evidence published date_basis modified salary company_url credibility verification verification_evidence checked_at application_url board_key direct first_seen last_seen age_days freshness score match_reasons identity_status identity_evidence identity_checked_at research_notes application_email'.split()
+
+def version_assets(html, output):
+    """Each HTML release points to immutable CSS/JS, preventing mixed cached releases.
+
+    Keep earlier files so an already-open page can finish loading its own release.
+    """
+    def replace(match):
+        name = match.group(2)
+        source = output / name
+        digest = hashlib.sha256(source.read_bytes()).hexdigest()[:12]
+        version = source.stem + '.' + digest + source.suffix
+        shutil.copyfile(source, output / version)
+        return match.group(1) + './' + version + '"'
+    return re.sub(r'((?:src|href)=")\./([a-z-]+\.(?:css|js))"', replace, html)
 
 def public_snapshot(snapshot):
     jobs=[]
@@ -30,6 +46,7 @@ def build(output):
     html=(scout.ROOT/'web/index.html').read_text('utf-8')
     html=html.replace('<script src="./details.js"','<script src="./public.js" defer></script><script src="./details.js"')
     html=html.replace('href="/api/export"','href="#export"').replace('href="/"','href="./"')
+    html=version_assets(html,output)
     (output/'index.html').write_text(html,'utf-8')
     (output/'.nojekyll').write_text('','utf-8')
     data=public_snapshot(scout.snapshot())
