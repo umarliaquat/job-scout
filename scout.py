@@ -1078,6 +1078,9 @@ def opportunity(j):
     elif not available:
         tier='review'
         catch='Check the application destination before preparing an application.'
+    elif re.search(r'\bwerkstudent|\bworking[ -]student',j.get('title',''),re.I):
+        tier='review'
+        catch='Working-student role: enrollment, country and language eligibility need confirmation before treating this as an applicable lead.'
     elif core and portable:
         tier='promising'
         catch=concerns[0] if concerns else 'Review the role against your experience before applying.'

@@ -59,4 +59,10 @@ class SourceRepairTests(unittest.TestCase):
         self.assertNotIn('PRIVATE_PATH',publish.source_detail(dict(status='error',detail='HTTP Error 429 at C:/PRIVATE_PATH')))
         self.assertIn('manual',publish.source_detail(dict(status='manual',detail='unreadable')))
 
+    def test_working_student_role_requires_eligibility_review(self):
+        record=dict(title='Werkstudent UX/UI Design',category='Product design',freshness='Recent',verification='Application form found',eligibility='Worth a chance',description='',location='Berlin')
+        result=scout.opportunity(record)
+        self.assertEqual(result['priority'],'review')
+        self.assertIn('enrollment',result['main_catch'])
+
 if __name__=='__main__':unittest.main()
