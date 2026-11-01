@@ -66,13 +66,14 @@ function updateRefreshStatus(){
  const finished=data.last_run?.finished,valid=finished&&Number.isFinite(Date.parse(finished));
  const time=valid?new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Karachi',dateStyle:'medium',timeStyle:'short'}).format(new Date(finished))+' PKT':'Not available';
  $('#last-scan').textContent=valid?'Last successful collection: '+time:'No successful collection recorded';
+ if(valid)$('#last-scan').innerHTML='<span class="collection-label">Last successful collection:</span><time datetime="'+esc(finished)+'">'+esc(time)+'</time>';
  const pkParts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Karachi',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23',minute:'2-digit'}).formatToParts(new Date());
  const parts=Object.fromEntries(pkParts.map(p=>[p.type,p.value]));
  const today=parts.year+'-'+parts.month+'-'+parts.day;
  const date=valid?new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Karachi',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(finished)):'';
  const overdue=!valid||Date.now()-Date.parse(finished)>26*3600000||(Number(parts.hour)*60+Number(parts.minute)>=645&&date!==today);
  $('#last-scan').classList.toggle('overdue',overdue);
- if(overdue)$('#last-scan').textContent+=' · Overdue';
+ if(overdue)$('#last-scan').innerHTML+='<span class="collection-overdue">Overdue</span>';
  $('#last-scan').title=window.SCOUT_PUBLIC?(overdue?'Morning update is overdue. Refresh jobs checks the published file; it cannot start the collector. Check the refresh run for failures.':'Morning collection: 7:23 AM Pakistan, with backup attempts at 9:23 and 10:23 AM. Refresh jobs loads the latest published results; it does not start a crawl.'):'This is the local collector. Automatic morning updates appear on the public site; Search sources now runs a local crawl.';
  $('#scan').title=window.SCOUT_PUBLIC?'Load the latest published jobs without calling job-feed APIs':'Fetch job feeds and check application pages';
 }
