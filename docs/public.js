@@ -31,7 +31,7 @@ window.scoutApi=async function(path,body){
 document.addEventListener('DOMContentLoaded',()=>{
  document.body.classList.add('public-mode');
  document.querySelector('.local-note').textContent='Public listings. Your saves and notes stay in this browser; clearing browser data removes them.';
- const note=document.createElement('p');note.className='runtime-notice';note.textContent='Public job research, refreshed daily when the collector succeeds. Saves, status and notes stay on this device. Check each employer before applying.';
+ const note=document.createElement('p');note.className='runtime-notice';note.textContent='Public job research. Morning updates run on GitHub; the refresh button loads the latest published collection. Saves, status and notes stay on this device. Check each employer before applying.';
  document.querySelector('.intro').after(note);
  const form=document.querySelector('#add-source');form.hidden=true;
  document.querySelector('.selection-help>div').lastElementChild.textContent='These are research priorities, not response predictions. Check country requirements and employer identity. No resume data is published.';

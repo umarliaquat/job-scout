@@ -47,18 +47,33 @@ async function load(){
 
   if(data.jobs.some(j=>!j.priority))throw new Error('The local server needs restarting to load the updated ranking.');
 
-  $('#scan').disabled=!!data.scan.running;$('#scan').textContent=data.scan.running?'Checking sources…':window.SCOUT_PUBLIC?'Reload listings':'Check for new jobs';
+  $('#scan').disabled=!!data.scan.running;$('#scan').textContent=data.scan.running?'Checking sources…':window.SCOUT_PUBLIC?'Refresh jobs':'Search sources now';
 
   $('#scan-status').hidden=!data.scan.running;$('#scan-status').textContent=data.scan.message;
 
-  $('#last-scan').textContent=data.last_run?'Last checked '+stamp(data.last_run.finished):'No scans yet';
+  updateRefreshStatus();
 
   const baseline=window.scoutReading.sync(data.jobs);
   $('#reading-notice').textContent=window.scoutReading.persistent?(baseline?'Watching from today. Existing listings are your baseline; new arrivals will appear after a future refresh.':'New arrivals stay here until you open them. Viewed history stays in this browser. Listings that disappear and return keep their reading status.'):'Browser storage is unavailable. Reading history will be lost when you leave this page.';
-  render();
+  render();return true;
 
- }catch(e){error(e.message);}
+ }catch(e){error(e.message);return false;}
 
+}
+
+function updateRefreshStatus(){
+ const finished=data.last_run?.finished,valid=finished&&Number.isFinite(Date.parse(finished));
+ const time=valid?new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Karachi',dateStyle:'medium',timeStyle:'short'}).format(new Date(finished))+' PKT':'Not available';
+ $('#last-scan').textContent=valid?'Last successful refresh: '+time:'No successful refresh recorded';
+ $('#refresh-time').textContent=valid?'Last successful collection: '+time:'No successful collection recorded';
+ const pkParts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Karachi',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23',minute:'2-digit'}).formatToParts(new Date());
+ const parts=Object.fromEntries(pkParts.map(p=>[p.type,p.value]));
+ const today=parts.year+'-'+parts.month+'-'+parts.day;
+ const date=valid?new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Karachi',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(finished)):'';
+ const overdue=!valid||Date.now()-Date.parse(finished)>26*3600000||(Number(parts.hour)*60+Number(parts.minute)>=645&&date!==today);
+ $('.refresh-status').classList.toggle('overdue',overdue);
+ $('#refresh-help').textContent=window.SCOUT_PUBLIC?(overdue?'Morning update is overdue. Refresh jobs checks the published file; it cannot start the collector. Check the refresh run for failures.':'Morning collection: 7:23 AM Pakistan, with backup attempts at 9:23 and 10:23 AM. Refresh jobs loads the latest published results; it does not start a crawl.'):'This is the local collector. Automatic morning updates appear on the public site; Search sources now runs a local crawl.';
+ $('#scan').title=window.SCOUT_PUBLIC?'Load the latest published jobs without calling job-feed APIs':'Fetch job feeds and check application pages';
 }
 
 const contexts={
@@ -179,7 +194,19 @@ function clearFilters(){for(const s of ['#search','#freshness','#eligibility','#
 function sourceName(name){return ({arbeitnow:'Arbeitnow · Europe',arbeitnow_uk:'Arbeitnow · United Kingdom',himalayas:'Himalayas · remote jobs',wwr:'We Work Remotely',remoteok:'Remote OK',jobicy:'Jobicy',remotive:'Remotive'})[name]||name.replace(/^ashby:/,'Ashby · ').replace(/^greenhouse:/,'Greenhouse · ').replace(/^workable:/,'Workable · ').replace(/^page:/,'Employer page · ');}
 function renderSources(){$('.coverage-note p').textContent=window.SCOUT_PUBLIC?'Public source checks from the last collection. Failed checks are kept visible; they do not mean a company has stopped hiring.':'Follow smaller companies and inspect source checks. A failed check does not mean a company has stopped hiring.';$('#source-list').innerHTML=data.sources.map(s=>`<div class="source-row"><strong>${esc(sourceName(s.name))}</strong><span>${badge(s.status,s.status==='error'?'bad':s.status==='pending'?'warn':'good')}</span><span>${esc(s.detail)}<br>Checked ${stamp(s.checked)}</span></div>`).join('')||'<p>No sources checked yet. Run a scan to begin.</p>';}
 
-async function startScan(){$('#scan').disabled=true;error('');try{await api('/api/scan',{});await load();}catch(e){error(e.message);$('#scan').disabled=false;}}
+let refreshBusy=false;
+async function startScan(){
+ if(refreshBusy)return;
+ refreshBusy=true;$('#scan').disabled=true;$('#scan').textContent=window.SCOUT_PUBLIC?'Refreshing…':'Starting search…';error('');
+ const before=new Set(data.jobs.map(j=>j.id)),previous=data.last_run?.finished;
+ try{
+  await api('/api/scan',{});
+  if(await load()){
+   lastSnapshotCheck=Date.now();
+   if(window.SCOUT_PUBLIC){const count=data.jobs.filter(j=>!before.has(j.id)&&arrival(j)&&roleScope(j)).length;toast(count?`${count} new qualifying ${count===1?'role':'roles'} loaded`:previous===data.last_run?.finished?'You have the latest published jobs. No newer collection yet.':'Latest collection loaded. No new qualifying design arrivals.');}
+  }
+ }catch(e){error(e.message);}finally{refreshBusy=false;$('#scan').disabled=!!data.scan.running;if(!data.scan.running)$('#scan').textContent=window.SCOUT_PUBLIC?'Refresh jobs':'Search sources now';}
+}
 
 async function quickSave(id,button){const j=data.jobs.find(j=>j.id===id);button.disabled=true;try{const state=j.state==='saved'?'new':'saved';await api('/api/job',{id,state,notes:j.notes});await load();toast(state==='saved'?'Opportunity saved':'Removed from saved opportunities');}catch(e){error(e.message);button.disabled=false;}}
 
@@ -221,3 +248,5 @@ document.addEventListener('visibilitychange',async()=>{
  lastSnapshotCheck=Date.now();
  try{await api('/api/scan',{});await load();}catch(e){error(e.message);}
 });
+
+setInterval(()=>{if(window.SCOUT_PUBLIC&&document.visibilityState==='visible'&&!refreshBusy&&Date.now()-lastSnapshotCheck>=1800000)startScan();},60000);

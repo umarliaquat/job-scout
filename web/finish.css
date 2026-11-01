@@ -14,3 +14,5 @@ dialog{padding:64px 40px 36px;max-width:min(780px,100vw);background:#fff}.detail
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;scroll-behavior:auto!important;transition:none!important}}
 
 .reading-notice{font-size:15px;line-height:1.6;color:var(--muted,#52605a);margin:0 0 20px;max-width:90ch}.cell-category{display:flex;flex-wrap:wrap;gap:6px}.tabs{overflow-x:auto}.tabs .tab{white-space:nowrap;flex-shrink:0}
+
+.refresh-status{margin:0 0 24px;padding:14px 16px;background:#edf3e8;border:1px solid #d9e5d0;border-radius:8px;color:#365535}.refresh-status p{margin:0;line-height:1.6;overflow-wrap:anywhere}.refresh-status p:first-child{font-size:15px;font-weight:600}.refresh-status p+p{font-size:14px;margin-top:4px}.refresh-status.overdue{background:#fff4df;border-color:#d9bf83;color:#74501b}.topbar{gap:12px;flex-wrap:wrap;height:auto;min-height:64px;padding-block:12px}
