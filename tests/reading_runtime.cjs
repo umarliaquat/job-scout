@@ -52,5 +52,7 @@ vm.createContext(ui);vm.runInContext(code,ui);vm.runInContext(fs.readFileSync('w
  assert.match(node('#results').innerHTML,/1 without a verified application route/);
  assert.match(node('#results').innerHTML,/Coverage is incomplete/);
  assert.match(node('#results').innerHTML,/Last completed search/);
+ assert.match(node('#results').innerHTML,/1 new design role found; none passed the checks/);
+ assert.match(node('#results').innerHTML,/<details class="empty-search-details"><summary>View details<\/summary>/);
  console.log('Interface checks passed: baseline empty state, new queue, chips, viewed removal and unviewed filter.');
 })().catch(e=>{console.error(e);process.exitCode=1});
