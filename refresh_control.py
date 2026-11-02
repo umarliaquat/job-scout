@@ -27,6 +27,28 @@ def usage_record(value):
         raise ValueError('Invalid request count')
     return dict(date=value['date'], requests=count)
 
+def search_plan(snapshot,budget,force=False,current=None):
+    """Public workflow guard: at most three attempts per PK day, two hours apart."""
+    current=current or datetime.now(timezone.utc)
+    today=current.astimezone(PK).date().isoformat()
+    attempts=[]
+    if budget.get('date')==today:
+        for value in budget.get('attempts',[]):
+            when=datetime.fromisoformat(value)
+            if when.utcoffset() is None: raise ValueError('Invalid search budget timestamp')
+            attempts.append(when)
+    if not attempts and refreshed_today(snapshot,current):
+        attempts=[datetime.fromisoformat(snapshot['last_run']['finished'])]
+    if not force and refreshed_today(snapshot,current):
+        return dict(collect=False,reason='already_today',attempts=attempts,next_allowed=None)
+    tomorrow=datetime.combine(current.astimezone(PK).date()+timedelta(days=1),datetime.min.time(),tzinfo=PK)
+    if len(attempts)>=3:
+        return dict(collect=False,reason='daily_limit',attempts=attempts,next_allowed=tomorrow.isoformat())
+    next_allowed=max(attempts)+timedelta(hours=2) if attempts else current
+    if next_allowed>current:
+        return dict(collect=False,reason='cooldown',attempts=attempts,next_allowed=next_allowed.isoformat())
+    return dict(collect=True,reason='requested',attempts=attempts+[current],next_allowed=(current+timedelta(hours=2)).isoformat())
+
 def validate(snapshot):
     if not refreshed_today(snapshot) or len(snapshot['jobs']) < 5:
         raise ValueError('No healthy completed collection today; retaining previous publication')
@@ -46,10 +68,16 @@ def main():
             snapshot = json.loads((ROOT / 'docs/jobs.json').read_text('utf-8'))
         except (OSError, ValueError):
             snapshot = {}
-        value = 'false' if refreshed_today(snapshot) and os.environ.get('FORCE_COLLECTION')!='true' else 'true'
+        budget_path=ROOT/'.refresh-state/search-budget.json'
+        budget=json.loads(budget_path.read_text('utf-8')) if budget_path.exists() else {}
+        plan=search_plan(snapshot,budget,os.environ.get('FORCE_COLLECTION')=='true')
+        value=str(plan['collect']).lower()
+        if plan['collect']:
+            budget_path.parent.mkdir(parents=True,exist_ok=True)
+            budget_path.write_text(json.dumps(dict(date=datetime.now(timezone.utc).astimezone(PK).date().isoformat(),attempts=[x.isoformat() for x in plan['attempts']]))+'\n','utf-8')
         with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
-            output.write('collect=' + value + '\n')
-        print('Collect today: ' + value)
+            output.write('collect='+value+'\nreason='+plan['reason']+'\nnext_allowed='+(plan['next_allowed'] or '')+'\n')
+        print('Collect: '+value+'; reason: '+plan['reason'])
     elif action == 'publication':
         expected=json.loads((ROOT/'docs/jobs.json').read_text('utf-8'))['last_run']['finished']
         try:

@@ -1,8 +1,25 @@
 import unittest
 from datetime import datetime, timezone
-from refresh_control import refreshed_today, usage_record, validate
+from refresh_control import refreshed_today, usage_record, validate, search_plan
 
 class RefreshControlTests(unittest.TestCase):
+    def test_owner_search_cooldown_and_daily_cap_cannot_be_bypassed(self):
+        snapshot={'last_run':{'finished':'2026-11-02T02:00:00+00:00'}}
+        now=datetime(2026,11,2,3,tzinfo=timezone.utc)
+        self.assertEqual(search_plan(snapshot,{},True,now)['reason'],'cooldown')
+        later=datetime(2026,11,2,4,tzinfo=timezone.utc)
+        self.assertTrue(search_plan(snapshot,{},True,later)['collect'])
+        budget={'date':'2026-11-02','attempts':['2026-11-02T00:00:00+00:00','2026-11-02T02:00:00+00:00','2026-11-02T04:00:00+00:00']}
+        self.assertEqual(search_plan(snapshot,budget,True,datetime(2026,11,2,8,tzinfo=timezone.utc))['reason'],'daily_limit')
+        tomorrow=datetime(2026,11,3,2,tzinfo=timezone.utc)
+        self.assertTrue(search_plan(snapshot,budget,True,tomorrow)['collect'])
+
+    def test_morning_retries_skip_after_success_but_failed_attempts_are_limited(self):
+        now=datetime(2026,11,2,3,tzinfo=timezone.utc)
+        self.assertEqual(search_plan({'last_run':{'finished':'2026-11-02T02:00:00+00:00'}},{},False,now)['reason'],'already_today')
+        budget={'date':'2026-11-02','attempts':['2026-11-02T02:00:00+00:00']}
+        self.assertEqual(search_plan({},budget,False,now)['reason'],'cooldown')
+
     def test_pakistan_calendar_day_and_future_timestamps(self):
         now = datetime(2026, 11, 1, 3, tzinfo=timezone.utc)
         self.assertTrue(refreshed_today({'last_run': {'finished': '2026-10-31T23:00:00+00:00'}}, now))

@@ -3,6 +3,13 @@
 window.SCOUT_PUBLIC=true;
 const trackingKey='job-scout-public-tracking-v1';
 let publicSnapshot;
+window.scoutSearchStatus=async function(){
+ const response=await fetch('https://raw.githubusercontent.com/umarliaquat/job-scout/scout-status/search-status.json?t='+Date.now(),{cache:'no-store',referrerPolicy:'no-referrer'});
+ if(!response.ok)throw new Error('Search status unavailable');
+ const status=await response.json();
+ if(status.schema!==1||!['running','publishing','completed','skipped','failed'].includes(status.phase))throw new Error('Invalid search status');
+ return status;
+};
 function readTracking(){try{return JSON.parse(localStorage.getItem(trackingKey)||'{}');}catch{return {};}}
 window.scoutApi=async function(path,body){
  if(path==='/api/jobs'){
@@ -30,6 +37,7 @@ window.scoutApi=async function(path,body){
 };
 document.addEventListener('DOMContentLoaded',()=>{
  document.body.classList.add('public-mode');
+ document.querySelector('#owner-tools').hidden=false;
  document.querySelector('.local-note').textContent='Your saves, viewed history and notes stay here. Clearing browser data removes them.';
  const form=document.querySelector('#add-source');form.hidden=true;
  document.querySelector('.selection-help>div').lastElementChild.textContent='These are research priorities, not response predictions. Check country requirements and employer identity. No resume data is published.';

@@ -1,8 +1,8 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const storage=new Map();
 const snapshot={jobs:[{id:'one',title:'Product Designer',state:'new',notes:'',priority:'promising',published:new Date().toISOString(),checked_at:new Date().toISOString(),verification:'Application form found',verification_evidence:'Form found.'}],sources:[],scan:{running:false}};
-let fetched;
-const context={window:{},document:{addEventListener(){}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},structuredClone,Date,URL,Blob,fetch:async path=>{fetched=path;return {ok:true,json:async()=>structuredClone(snapshot)}}};
+let fetched;let statusDoc={schema:1,phase:'completed'};
+const context={window:{},document:{addEventListener(){}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},structuredClone,Date,URL,Blob,fetch:async path=>{fetched=path;return {ok:true,json:async()=>structuredClone(String(path).startsWith('https://raw.githubusercontent.com/')?statusDoc:snapshot)}}};
 vm.createContext(context);vm.runInContext(fs.readFileSync('web/public.js','utf8'),context);
 (async()=>{
  const api=context.window.scoutApi;
@@ -15,5 +15,8 @@ vm.createContext(context);vm.runInContext(fs.readFileSync('web/public.js','utf8'
  let current=await api('/api/jobs');assert.equal(current.jobs[0].verification,'Needs recheck');assert.equal(current.jobs[0].priority,'review');
  snapshot.jobs[0].published='2020-01-01T00:00:00Z';await api('/api/scan');
  assert.equal((await api('/api/jobs')).jobs[0].priority,'archive');
+ assert.equal((await context.window.scoutSearchStatus()).phase,'completed');
+ assert.ok(fetched.startsWith('https://raw.githubusercontent.com/umarliaquat/job-scout/scout-status/'));
+ statusDoc={schema:1,phase:'unrecognized'};await assert.rejects(context.window.scoutSearchStatus(),/Invalid search status/);
  console.log('Public runtime checks passed: relative fetch, browser-only tracking, stale checks, archive and errors.');
 })().catch(e=>{console.error(e);process.exitCode=1});

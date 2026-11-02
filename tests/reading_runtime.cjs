@@ -60,5 +60,14 @@ vm.createContext(ui);vm.runInContext(code,ui);vm.runInContext(fs.readFileSync('w
  assert.match(node('#results').innerHTML,/Last completed search/);
  assert.match(node('#results').innerHTML,/1 new design role found; none passed the checks/);
  assert.match(node('#results').innerHTML,/<details class="empty-search-details"><summary>View details<\/summary>/);
+ let remoteStatus={schema:1,phase:'running',updated_at:new Date().toISOString(),run_url:'https://github.com/umarliaquat/job-scout/actions/runs/123'};
+ ui.window.scoutSearchStatus=async()=>remoteStatus;
+ await vm.runInContext('updateSearchStatus()',ui);assert.match(node('#search-state-label').textContent,/Searching/);assert.equal(node('#search-run').hidden,false);
+ remoteStatus={...remoteStatus,updated_at:new Date(Date.now()-46*60000).toISOString()};
+ await vm.runInContext('updateSearchStatus()',ui);assert.match(node('#search-state-label').textContent,/needs checking/);
+ remoteStatus={...remoteStatus,phase:'skipped',reason:'cooldown',next_allowed:new Date(Date.now()+7200000).toISOString(),run_url:'https://example.com/not-a-run'};
+ await vm.runInContext('updateSearchStatus()',ui);assert.match(node('#search-state-label').textContent,/Search available at/);assert.equal(node('#search-run').hidden,true);
+ ui.window.scoutSearchStatus=async()=>{throw Error('offline')};
+ await vm.runInContext('updateSearchStatus()',ui);assert.match(node('#search-state-label').textContent,/unavailable/);
  console.log('Interface checks passed: baseline empty state, new queue, chips, viewed removal and unviewed filter.');
 })().catch(e=>{console.error(e);process.exitCode=1});

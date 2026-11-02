@@ -52,6 +52,7 @@ async function load(){
   $('#scan-status').hidden=!data.scan.running;$('#scan-status').textContent=data.scan.message;
 
   updateRefreshStatus();
+  updateSearchStatus();
 
   const baseline=window.scoutReading.sync(data.jobs);
   $('#reading-notice').hidden=window.scoutReading.persistent&&!baseline;
@@ -60,6 +61,27 @@ async function load(){
 
  }catch(e){error(e.message);return false;}
 
+}
+
+let searchStatusBusy=false,lastStatusResultReload=0;
+async function updateSearchStatus(){
+ if(searchStatusBusy)return;
+ if(!window.SCOUT_PUBLIC){$('#search-state-label').textContent=data.scan.running?'Searching sources…':data.last_run?'Last search completed':'No search completed yet';$('#search-run').hidden=true;return;}
+ if(!window.scoutSearchStatus)return;
+ searchStatusBusy=true;
+ try{
+  const status=await window.scoutSearchStatus();
+  const stale=['running','publishing'].includes(status.phase)&&(!Number.isFinite(Date.parse(status.updated_at))||Date.now()-Date.parse(status.updated_at)>45*60000);
+  const pk=x=>new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Karachi',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(x))+' PKT';
+  const labels={running:'Searching sources…',publishing:'Publishing results…',completed:'Last search completed',failed:'Search failed · previous results kept',skipped:status.reason==='cooldown'&&status.next_allowed?'Search available at '+pk(status.next_allowed):status.reason==='daily_limit'?'Daily search limit reached':status.reason==='already_today'?'Already searched today':'Search skipped'};
+  const pendingPublication=status.phase==='completed'&&status.last_collection&&status.last_collection!==data.last_run?.finished;
+  $('#search-state-label').textContent=stale?'Search status needs checking':pendingPublication?'Search finished · loading published results…':labels[status.phase];
+  $('#search-state').dataset.state=stale?'unknown':status.phase;
+  const validRun=typeof status.run_url==='string'&&/^https:\/\/github\.com\/umarliaquat\/job-scout\/actions\/runs\/\d+$/.test(status.run_url);
+  $('#search-run').hidden=!validRun;$('#search-run').href=validRun?status.run_url:'https://github.com/umarliaquat/job-scout/actions/workflows/refresh.yml';
+  if(pendingPublication&&Date.now()-lastStatusResultReload>60000){lastStatusResultReload=Date.now();await api('/api/scan',{});await load();}
+ }catch{$('#search-state-label').textContent='Search status unavailable';$('#search-state').dataset.state='unknown';$('#search-run').hidden=false;$('#search-run').href='https://github.com/umarliaquat/job-scout/actions/workflows/refresh.yml';}
+ finally{searchStatusBusy=false;}
 }
 
 function updateRefreshStatus(){
@@ -184,6 +206,7 @@ function render(){
  document.querySelectorAll('[data-tab]').forEach(b=>{const selected=b.dataset.tab===tabView;b.classList.toggle('active',selected);b.setAttribute('aria-selected',String(selected));b.tabIndex=selected?0:-1;});
 
  $('#scan').hidden=sources||!discover;
+ $('.intro-actions').hidden=sources||!discover;
  if(sources){renderSources();return;}
 
  const query=$('#search').value.toLowerCase().trim(),category=$('#category').value,freshness=$('#freshness').value,eligibility=$('#eligibility').value;
@@ -275,3 +298,5 @@ document.addEventListener('visibilitychange',async()=>{
 });
 
 setInterval(()=>{if(window.SCOUT_PUBLIC&&document.visibilityState==='visible'&&!refreshBusy&&Date.now()-lastSnapshotCheck>=1800000)startScan();},60000);
+
+setInterval(()=>{if(document.visibilityState==='visible')updateSearchStatus();},60000);

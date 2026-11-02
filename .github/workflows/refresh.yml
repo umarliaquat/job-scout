@@ -1,16 +1,12 @@
 name: Refresh public job research
-run-name: Job refresh - ${{ github.event_name == 'schedule' && 'GitHub schedule' || inputs.trigger_source || 'manual' }}
+run-name: Job refresh - ${{ github.event_name == 'schedule' && 'morning schedule' || 'owner request' }}
 on:
   workflow_dispatch:
     inputs:
-      trigger_source:
-        description: "Scheduler source (for verification)"
-        type: string
-        default: manual
       force_collection:
-        description: "Run a repair collection even if today already succeeded"
+        description: "Run a new search (2-hour cooldown; maximum 3 searches per day)"
         type: boolean
-        default: false
+        default: true
   schedule:
     # 07:23 PKT primary; 09:23 and 10:23 PKT recovery attempts.
     - cron: '23 2 * * *'
@@ -28,6 +24,9 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+      - name: Publish running status
+        continue-on-error: true
+        run: python3 -B search_status.py running
       - name: Check collector, browser and refresh guards
         run: |
           python3 -B -m unittest discover -s tests -q
@@ -63,6 +62,10 @@ jobs:
             git commit -m 'Refresh public job research and API usage counter'
             git push
           fi
+      - name: Publish collection-finished status
+        if: steps.plan.outputs.collect == 'true'
+        continue-on-error: true
+        run: python3 -B search_status.py publishing
       - name: Check published collection freshness
         id: publication
         run: python3 -B refresh_control.py publication
@@ -81,10 +84,17 @@ jobs:
         env:
           RUN_EVENT: ${{ github.event_name }}
           RUN_SCHEDULE: ${{ github.event.schedule }}
-          TRIGGER_SOURCE: ${{ inputs.trigger_source }}
           COLLECT_NEEDED: ${{ steps.plan.outputs.collect }}
         run: |
           echo "Event: $RUN_EVENT" >> "$GITHUB_STEP_SUMMARY"
           echo "Schedule: $RUN_SCHEDULE" >> "$GITHUB_STEP_SUMMARY"
-          echo "External source: $TRIGGER_SOURCE" >> "$GITHUB_STEP_SUMMARY"
           echo "Collection needed: $COLLECT_NEEDED" >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish final search status
+        if: always()
+        continue-on-error: true
+        env:
+          SEARCH_OUTCOME: ${{ job.status }}
+          SEARCH_COLLECTED: ${{ steps.plan.outputs.collect }}
+          SEARCH_REASON: ${{ steps.plan.outputs.reason }}
+          SEARCH_NEXT_ALLOWED: ${{ steps.plan.outputs.next_allowed }}
+        run: python3 -B search_status.py finished
