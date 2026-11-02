@@ -145,22 +145,22 @@ function publicationLabel(j){return (j.date_basis||'').startsWith('Last publishe
 
 const PAGE_SIZE=12;
 const collapsedDates=new Set();
-try{const stored=JSON.parse(localStorage.getItem('job-scout-collapsed-dates-v1')||'[]');if(Array.isArray(stored))for(const key of stored)if(typeof key==='string'&&/^(unviewed|legacy|viewed:\d{4}-\d{2}-\d{2})$/.test(key))collapsedDates.add(key);}catch{}
-const viewDayFormat=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Karachi',year:'numeric',month:'2-digit',day:'2-digit'});
-function pkDate(value){const parts=Object.fromEntries(viewDayFormat.formatToParts(new Date(value)).map(p=>[p.type,p.value]));return `${parts.year}-${parts.month}-${parts.day}`;}
+try{const stored=JSON.parse(localStorage.getItem('job-scout-collapsed-found-dates-v1')||'[]');if(Array.isArray(stored))for(const key of stored)if(typeof key==='string'&&/^(unknown|found:\d{4}-\d{2}-\d{2})$/.test(key))collapsedDates.add(key);}catch{}
+const foundDayFormat=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Karachi',year:'numeric',month:'2-digit',day:'2-digit'});
+function pkDate(value){const parts=Object.fromEntries(foundDayFormat.formatToParts(new Date(value)).map(p=>[p.type,p.value]));return `${parts.year}-${parts.month}-${parts.day}`;}
 function dateGroups(jobs){
  const groups=new Map();
  for(const j of jobs){
-  const viewed=window.scoutReading.isViewed(j.id),date=window.scoutReading.viewedAt(j.id);
-  const key=!viewed?'unviewed':date?'viewed:'+pkDate(date):'legacy';
+  const date=j.first_seen;
+  const key=date&&Number.isFinite(Date.parse(date))?'found:'+pkDate(date):'unknown';
   if(!groups.has(key)){
-   const year=key.startsWith('viewed:')?key.slice(7,11):null;
-   const label=key==='unviewed'?'Not viewed yet':key==='legacy'?'Previously viewed · date unavailable':'Viewed '+new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Karachi',day:'numeric',month:'short',...(year!==pkDate(Date.now()).slice(0,4)?{year:'numeric'}:{})}).format(new Date(key.slice(7)+'T12:00:00+05:00'));
+   const year=key.startsWith('found:')?key.slice(6,10):null;
+   const label=key==='unknown'?'Date unavailable':new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Karachi',day:'numeric',month:'short',...(year!==pkDate(Date.now()).slice(0,4)?{year:'numeric'}:{})}).format(new Date(key.slice(6)+'T12:00:00+05:00'));
    groups.set(key,{key,label,jobs:[]});
   }
   groups.get(key).jobs.push(j);
  }
- const rank=key=>key==='unviewed'?0:key==='legacy'?2:1;
+ const rank=key=>key==='unknown'?1:0;
  return [...groups.values()].sort((a,b)=>rank(a.key)-rank(b.key)||b.key.localeCompare(a.key));
 }
 function paginateGroups(jobs,requestedPage){
@@ -171,7 +171,7 @@ function paginateGroups(jobs,requestedPage){
  return {groups:visible,page:current,pages,total:expanded.length,start,closedJobs:jobs.length-expanded.length};
 }
 const groupBodyId=key=>'date-group-'+key.replace(/:/g,'-');
-function groupControl(g){return `<button class="date-group-toggle" data-group="${esc(g.key)}" aria-expanded="${!g.closed}" aria-controls="${groupBodyId(g.key)}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m5 3 5 5-5 5"/></svg><span>${esc(g.label)}</span><span class="date-group-count">${g.jobs.length} ${g.jobs.length===1?'job':'jobs'}</span></button>`;}
+function groupControl(g){return `<button class="date-group-toggle" data-group="${esc(g.key)}" aria-expanded="${!g.closed}" aria-controls="${groupBodyId(g.key)}" title="Jobs first found on ${esc(g.label)}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m5 3 5 5-5 5"/></svg><span>${esc(g.label)}</span><span class="date-group-count">${g.jobs.length} ${g.jobs.length===1?'job':'jobs'}</span></button>`;}
 function renderPagination(result){
  const pages=[...new Set([1,result.pages,result.page-1,result.page,result.page+1].filter(n=>n>=1&&n<=result.pages))].sort((a,b)=>a-b);
  const numbers=pages.map((n,i)=>(i&&n-pages[i-1]>1?'<span class="page-gap" aria-hidden="true">…</span>':'')+`<button data-page="${n}" aria-label="Page ${n}" ${n===result.page?'aria-current="page"':''}>${n}</button>`).join('');
@@ -185,7 +185,7 @@ function groupedResults(jobs){
 }
 function toggleDateGroup(key){
  if(collapsedDates.has(key))collapsedDates.delete(key);else collapsedDates.add(key);
- try{localStorage.setItem('job-scout-collapsed-dates-v1',JSON.stringify([...collapsedDates]));}catch{}
+ try{localStorage.setItem('job-scout-collapsed-found-dates-v1',JSON.stringify([...collapsedDates]));}catch{}
  page=1;render();document.querySelector('[data-group="'+key+'"]')?.focus({preventScroll:true});
 }
 function goToPage(next){

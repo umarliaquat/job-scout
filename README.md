@@ -51,8 +51,8 @@ Refresh jobs loads the published snapshot. Automatic morning collection is trigg
 
 The workflow publishes credential-free search-status.json on the scout-status branch at start, during publishing, and at completion. The browser reads the raw public file once per minute while visible and when refreshing results, without using the GitHub REST API or requiring a token. Unavailable or stale status remains explicit. A completed collection is not shown as loaded until its timestamp matches the published snapshot. The Pages rebuild is requested only when the public collection differs from the repository snapshot.
 
-### Viewed-date groups and pagination
+### Discovery-date groups and pagination
 
-Table and card layouts group jobs by the first recorded viewing day in Pakistan time. Unviewed jobs stay under Not viewed yet. Older browser histories without timestamps remain under Previously viewed, date unavailable; no dates are invented. Opening an older undated-history role records its viewing date from that point onward, while reopening a dated role keeps its original recorded day. Reading dates and collapsed groups stay private in this browser and are never published.
+Table and card layouts group jobs by the date Job Scout first found them (first_seen), in Pakistan time. Headings are dates such as 2 Nov and 1 Nov, newest first. Viewed and Unviewed remain independent row chips and filters. Employer publication dates remain in the Date column. Reading a job never moves its discovery group.
 
-Groups can be expanded or collapsed independently, and their collapsed state survives reloads. At most 12 expanded jobs appear on each page across all groups. Collapsed jobs do not consume page slots. Numbered pages and Previous/Next controls are available at the bottom; filters, sort, priority and layout changes reset to page one. Employer publication dates remain separate in the Date column. Sort order applies within each viewing group; unviewed jobs are shown first, then newest viewing days, then legacy undated history.
+Date groups expand and collapse independently. Up to 12 expanded jobs appear per page, with numbered pages and Previous/Next navigation. Collapsed jobs do not consume page slots. Collapse preferences stay private in this browser. Sorting applies within each date group. Filters, sorting, tabs and layout changes reset to page one.
