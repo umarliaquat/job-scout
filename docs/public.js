@@ -1,6 +1,7 @@
 'use strict';
 // GitHub Pages serves a sanitized snapshot. Personal tracking stays in this browser.
 window.SCOUT_PUBLIC=true;
+window.scoutAccount?.start();
 const trackingKey='job-scout-public-tracking-v1';
 let publicSnapshot;
 window.scoutSearchStatus=async function(){
@@ -10,11 +11,12 @@ window.scoutSearchStatus=async function(){
  if(status.schema!==1||!['running','publishing','completed','skipped','failed'].includes(status.phase))throw new Error('Invalid search status');
  return status;
 };
-function readTracking(){try{return JSON.parse(localStorage.getItem(trackingKey)||'{}');}catch{return {};}}
+function readTracking(){try{const value=JSON.parse(localStorage.getItem(trackingKey)||'{}');return value&&typeof value==='object'&&!Array.isArray(value)?value:{};}catch{return {};}}
 window.scoutApi=async function(path,body){
  if(path==='/api/jobs'){
+  if(window.scoutAccount)await window.scoutAccount.ready;
   if(!publicSnapshot){const response=await fetch('./jobs.json',{cache:'no-store'});if(!response.ok)throw new Error('Listings could not load. Reload the page to try again.');publicSnapshot=await response.json();}
-  const result=structuredClone(publicSnapshot),tracking=readTracking();
+  const result=structuredClone(publicSnapshot),tracking=window.scoutAccount?.active?{}:readTracking();
   for(const j of result.jobs){
    j.state=tracking[j.id]?.state||'new';j.notes=tracking[j.id]?.notes||'';
    if(j.checked_at&&Date.now()-Date.parse(j.checked_at)>86400000&&!['Closed','No longer listed'].includes(j.verification)){
@@ -23,16 +25,18 @@ window.scoutApi=async function(path,body){
    }
    if(j.published){j.age_days=Math.floor((Date.now()-Date.parse(j.published))/86400000);if(j.age_days>30){j.freshness='Older';j.priority='archive';j.main_catch='Published more than 30 days ago. Confirm whether hiring continues.';}}
   }
+  if(window.scoutAccount)result.jobs=window.scoutAccount.overlay(result.jobs);
   return result;
  }
  if(path==='/api/job'){
+  if(window.scoutAccount?.active)return window.scoutAccount.write(body.id,body.state,body.notes);
   if(!publicSnapshot?.jobs.some(j=>j.id===body.id))throw new Error('This listing is unavailable. Reload to update listings.');
   if(!['new','saved','applied','dismissed'].includes(body.state))throw new Error('Unknown application status.');
   const tracking=readTracking();tracking[body.id]={state:body.state,notes:String(body.notes||'').slice(0,10000)};
   try{localStorage.setItem(trackingKey,JSON.stringify(tracking));}catch{throw new Error('Browser storage is unavailable. Your changes could not be saved.');}
   return {ok:true};
  }
- if(path==='/api/scan'){publicSnapshot=null;return {ok:true};}
+ if(path==='/api/scan'){publicSnapshot=null;if(window.scoutAccount)await window.scoutAccount.refresh();return {ok:true};}
  throw new Error('Source management is available in the local collector.');
 };
 document.addEventListener('DOMContentLoaded',()=>{

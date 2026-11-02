@@ -1,5 +1,6 @@
 """Build a public static site. Explicit allowlist: never copy private workspace files."""
 import argparse
+import base64
 import hashlib
 import json
 import re
@@ -8,6 +9,29 @@ import shutil
 import scout
 
 PUBLIC_FIELDS='id company title category location description url source sources eligibility eligibility_evidence published date_basis modified salary company_url credibility verification verification_evidence checked_at application_url board_key direct first_seen last_seen age_days freshness score match_reasons identity_status identity_evidence identity_checked_at research_notes application_email'.split()
+
+def validate_account_config(value):
+    key=value.get('publishableKey','')
+    if key:
+        if key.startswith('sb_publishable_'):
+            if not re.fullmatch(r'sb_publishable_[A-Za-z0-9_-]+',key): raise ValueError('Invalid publishable key')
+        else:
+            try:
+                payload=key.split('.')[1]
+                role=json.loads(base64.urlsafe_b64decode(payload+'='*(-len(payload)%4)))['role']
+            except Exception:
+                raise ValueError('Only a Supabase publishable key or legacy anon key may be published') from None
+            if role!='anon': raise ValueError('Secret and service-role keys must never be published')
+    if value.get('enabled'):
+        if not key or not re.fullmatch(r'https://[a-z0-9-]+\.supabase\.co',value.get('url','')): raise ValueError('Use the Free project HTTPS URL and publishable key')
+        if value.get('provider') not in ('google','github'): raise ValueError('Unsupported authentication provider')
+    return value
+
+def read_account_config():
+    text=(scout.ROOT/'web/account-config.js').read_text('utf-8')
+    match=re.search(r'window\.SCOUT_ACCOUNT_CONFIG\s*=\s*(\{.*?\});',text,re.S)
+    if not match: raise ValueError('Account configuration must be a plain JSON object')
+    return validate_account_config(json.loads(match.group(1)))
 
 def version_assets(html, output):
     """Each HTML release points to immutable CSS/JS, preventing mixed cached releases.
@@ -69,6 +93,7 @@ def public_snapshot(snapshot,previous=None):
                 profile_loaded=False,public=True)
 
 def build(output):
+    read_account_config()
     output=Path(output).resolve()
     output.relative_to(scout.ROOT.resolve())
     output.mkdir(parents=True,exist_ok=True)
@@ -76,9 +101,12 @@ def build(output):
         previous=json.loads((output/'jobs.json').read_text('utf-8'))
     except (OSError,ValueError):
         previous=None
-    for name in ('style.css','layout.css','chips.css','finish.css','app.js','details.js','reading.js','public.js'):
+    for name in ('style.css','layout.css','chips.css','finish.css','app.js','details.js','reading.js','public.js','account-config.js','account.js'):
         shutil.copyfile(scout.ROOT/'web'/name,output/name)
     shutil.copytree(scout.ROOT/'web/fonts',output/'fonts',dirs_exist_ok=True)
+    (output/'vendor').mkdir(exist_ok=True)
+    for name in ('supabase-2.118.0.js','supabase-LICENSE.txt','supabase-source.json'):
+        shutil.copyfile(scout.ROOT/'web/vendor'/name,output/'vendor'/name)
     html=(scout.ROOT/'web/index.html').read_text('utf-8')
     html=html.replace('<script src="./details.js"','<script src="./public.js" defer></script><script src="./details.js"')
     html=html.replace('href="/api/export"','href="#export"').replace('href="/"','href="./"')

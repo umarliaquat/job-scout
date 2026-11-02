@@ -39,6 +39,7 @@ jobs:
           python3 -B -m unittest discover -s tests -q
           node tests/public_runtime.cjs
           node tests/reading_runtime.cjs
+          node tests/account_runtime.cjs
       - name: Skip collection if already successful today in Pakistan
         id: plan
         env:

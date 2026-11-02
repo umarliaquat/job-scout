@@ -1,4 +1,5 @@
 import json
+import base64
 from pathlib import Path
 import re
 import tempfile
@@ -8,6 +9,16 @@ import scout
 import publish
 
 class PublishPrivacyTests(unittest.TestCase):
+    def test_account_configuration_never_publishes_privileged_keys(self):
+        config=dict(enabled=True,url='https://example.supabase.co',provider='github')
+        publish.validate_account_config(dict(config,publishableKey='sb_publishable_example'))
+        def token(role):
+            return 'header.'+base64.urlsafe_b64encode(json.dumps({'role':role}).encode()).decode().rstrip('=')+'.signature'
+        publish.validate_account_config(dict(config,publishableKey=token('anon')))
+        for key in ['sb_secret_PRIVATE_MARKER',token('service_role'),'database-password']:
+            with self.assertRaises(ValueError):publish.validate_account_config(dict(config,publishableKey=key))
+        with self.assertRaises(ValueError):publish.validate_account_config(dict(config,url='http://127.0.0.1',publishableKey='sb_publishable_example'))
+
     def test_html_and_scripts_cannot_mix_cached_releases(self):
         with tempfile.TemporaryDirectory(dir=scout.ROOT/'tests') as temp:
             root=Path(temp)

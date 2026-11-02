@@ -14,14 +14,15 @@ window.scoutReading=(()=>{
  function save(){try{localStorage.setItem(key,JSON.stringify({known:[...known],pending:[...pending],viewed:[...viewed],viewedAt}));persistent=true;}catch{persistent=false;}}
  return {
   sync(jobs){
+   if(window.scoutAccount?.active)return window.scoutAccount.reading.sync(jobs);
    const baseline=!initialized;
    for(const job of jobs){if(!baseline&&!known.has(job.id)&&!viewed.has(job.id))pending.add(job.id);known.add(job.id);}
    initialized=true;save();return baseline;
   },
-  isNew:id=>pending.has(id)&&!viewed.has(id),
-  isViewed:id=>viewed.has(id),
-  viewedAt:id=>viewedAt[id]||null,
-  markViewed(id){viewed.add(id);pending.delete(id);if(!viewedAt[id])viewedAt[id]=new Date().toISOString();save();},
+  isNew:id=>window.scoutAccount?.active?window.scoutAccount.reading.isNew(id):pending.has(id)&&!viewed.has(id),
+  isViewed:id=>window.scoutAccount?.active?window.scoutAccount.reading.isViewed(id):viewed.has(id),
+  viewedAt:id=>window.scoutAccount?.active?window.scoutAccount.reading.viewedAt(id):viewedAt[id]||null,
+  markViewed(id){if(window.scoutAccount?.active){window.scoutAccount.reading.markViewed(id);return;}viewed.add(id);pending.delete(id);if(!viewedAt[id])viewedAt[id]=new Date().toISOString();save();},
   get persistent(){return persistent;}
  };
 })();

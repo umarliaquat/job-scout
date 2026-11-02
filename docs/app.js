@@ -55,7 +55,7 @@ async function load(){
   updateSearchStatus();
 
   const baseline=window.scoutReading.sync(data.jobs);
-  $('#reading-notice').hidden=window.scoutReading.persistent&&!baseline;
+  $('#reading-notice').hidden=!!window.scoutAccount?.active||window.scoutReading.persistent&&!baseline;
   $('#reading-notice').textContent=window.scoutReading.persistent?(baseline?'Watching from today. Existing listings are your baseline; new arrivals will appear after a future refresh.':'New arrivals stay here until you open them. Viewed history stays in this browser. Listings that disappear and return keep their reading status.'):'Browser storage is unavailable. Reading history will be lost when you leave this page.';
   render();return true;
 
@@ -350,3 +350,14 @@ document.addEventListener('visibilitychange',async()=>{
 setInterval(()=>{if(window.SCOUT_PUBLIC&&document.visibilityState==='visible'&&!refreshBusy&&Date.now()-lastSnapshotCheck>=1800000)startScan();},60000);
 
 setInterval(()=>{if(document.visibilityState==='visible')updateSearchStatus();},60000);
+
+window.addEventListener('scout-account-change',async event=>{
+ if(event.detail?.reset){
+  data.jobs=[];activeId=null;
+  if($('#detail').open)$('#detail').close();
+  $('#detail-content').textContent='';
+  $('#results').innerHTML='<p role="status">Loading your workspace…</p>';
+  for(const name of ['saved','applied','dismissed'])$(`#${name}-count`).textContent='0';
+ }
+ await Promise.resolve();await load();
+});

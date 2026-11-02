@@ -1209,7 +1209,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(csv_export(),content='text/csv; charset=utf-8')
         if path=='/fonts/InterTight-Variable.ttf':
             return self.reply((ROOT/'web/fonts/InterTight-Variable.ttf').read_bytes(),content='font/ttf')
-        files = {'/':('index.html','text/html'), '/app.js':('app.js','text/javascript'), '/reading.js':('reading.js','text/javascript'), '/details.js':('details.js','text/javascript'), '/style.css':('style.css','text/css'), '/layout.css':('layout.css','text/css'), '/chips.css':('chips.css','text/css'), '/finish.css':('finish.css','text/css')}
+        files = {'/':('index.html','text/html'), '/app.js':('app.js','text/javascript'), '/reading.js':('reading.js','text/javascript'), '/account.js':('account.js','text/javascript'), '/account-config.js':('account-config.js','text/javascript'), '/vendor/supabase-2.118.0.js':('vendor/supabase-2.118.0.js','text/javascript'), '/details.js':('details.js','text/javascript'), '/style.css':('style.css','text/css'), '/layout.css':('layout.css','text/css'), '/chips.css':('chips.css','text/css'), '/finish.css':('finish.css','text/css')}
         if path in files:
             filename, content = files[path]
             return self.reply((ROOT/'web'/filename).read_text('utf-8'),content=content+'; charset=utf-8')

@@ -17,7 +17,7 @@ function showJob(id) {
 }
 async function saveJob() {
   const button=$('#save-job');button.disabled=true;
-  try {await api('/api/job',{id:activeId,state:$('#job-state').value,notes:$('#notes').value});$('#save-feedback').textContent='Saved locally';await load();}
+  try {await api('/api/job',{id:activeId,state:$('#job-state').value,notes:$('#notes').value});$('#save-feedback').textContent=window.scoutAccount?.active?'Saved to your account':'Saved in this browser';await load();}
   catch(e){$('#save-feedback').textContent=e.message;}
   finally{button.disabled=false;}
 }
