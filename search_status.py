@@ -10,7 +10,10 @@ ROOT=Path(__file__).resolve().parent
 BRANCH='scout-status'
 
 def git(*args,data=None):
-    return subprocess.check_output(['git',*args],cwd=ROOT,input=data,text=True).strip()
+    # mktree paths must be LF-terminated, including on Windows. Text-mode stdin
+    # translates to CRLF and would create a filename with a trailing CR.
+    raw=subprocess.check_output(['git',*args],cwd=ROOT,input=data.encode('utf-8') if data is not None else None)
+    return raw.decode('utf-8').strip()
 
 def status_record(phase,env,snapshot):
     reason=env.get('SEARCH_REASON','')
