@@ -1,8 +1,15 @@
 name: Refresh public job research
-run-name: Job refresh - ${{ github.event_name == 'schedule' && 'morning schedule' || 'owner request' }}
+run-name: Job refresh - ${{ github.event_name == 'schedule' && 'morning schedule' || inputs.trigger_source || 'owner request' }}
 on:
   workflow_dispatch:
     inputs:
+      trigger_source:
+        description: "Trigger source"
+        type: choice
+        options:
+          - owner request
+          - cron-job.org
+        default: owner request
       force_collection:
         description: "Run a new search (2-hour cooldown; maximum 3 searches per day)"
         type: boolean
