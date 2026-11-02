@@ -22,8 +22,8 @@ const actualHtml=fs.readFileSync('web/index.html','utf8');
 const actualIds=new Set([...actualHtml.matchAll(/id="([^"]+)"/g)].map(m=>m[1]));
 function node(selector){if(!nodes.has(selector))nodes.set(selector,{value:selector==='#category'?'design':'',textContent:'',innerHTML:'',hidden:false,dataset:{},classList:{toggle(){}},setAttribute(){},addEventListener(){},focus(){}});return nodes.get(selector);}
 const jobs=[{id:'baseline',title:'Designer',company:'Studio',category:'Product design',priority:'promising',state:'new',description:'Design products',verification:'Application form found',date_basis:'Listing date',freshness:'Recent',age_days:1,location:'Worldwide',eligibility:'Worldwide advertised',published:new Date().toISOString(),checked_at:new Date().toISOString(),first_seen:new Date().toISOString(),main_catch:'Check company',attention_rank:10}];
-let report;const sourceResults=[];
-const uiStorage=new Map(),ui={window:{scoutApi:async()=>({jobs:structuredClone(jobs),sources:sourceResults,collection_report:report,scan:{},last_run:{finished:'2026-11-01T07:40:13+00:00'}})},document:{querySelector:s=>s.startsWith('#')&&!actualIds.has(s.slice(1))?null:node(s),querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:k=>uiStorage.get(k)||null,setItem:(k,v)=>uiStorage.set(k,v)},setInterval(){},setTimeout(){},clearTimeout(){},Date,URL};
+let report;let snapshotFinished=new Date().toISOString();const sourceResults=[];
+const uiStorage=new Map(),ui={window:{scoutApi:async()=>({jobs:structuredClone(jobs),sources:sourceResults,collection_report:report,scan:{},last_run:{finished:snapshotFinished}})},document:{querySelector:s=>s.startsWith('#')&&!actualIds.has(s.slice(1))?null:node(s),querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:k=>uiStorage.get(k)||null,setItem:(k,v)=>uiStorage.set(k,v)},setInterval(){},setTimeout(){},clearTimeout(){},Date,URL};
 vm.createContext(ui);vm.runInContext(code,ui);vm.runInContext(fs.readFileSync('web/app.js','utf8'),ui);
 (async()=>{
  await new Promise(setImmediate);
@@ -44,6 +44,12 @@ vm.createContext(ui);vm.runInContext(code,ui);vm.runInContext(fs.readFileSync('w
  assert.match(node('#last-scan').textContent,/Last successful collection:.*PKT/);
  assert.equal(node('#scan').textContent,'Refresh jobs');
  assert.match(node('#toast').textContent,/latest published jobs/);
+ assert.match(node('#last-scan').title,/does not start a crawl/);
+ snapshotFinished=new Date(Date.now()-48*3600000).toISOString();
+ await vm.runInContext('load()',ui);
+ assert.match(node('#last-scan').title,/Morning update is overdue/);
+ snapshotFinished=new Date().toISOString();
+ await vm.runInContext('load()',ui);
  assert.match(node('#last-scan').title,/does not start a crawl/);
  sourceResults.push({status:'ok'},{status:'cached'},{status:'error'},{status:'manual'});
  report={comparison_available:true,added_total:8,added_design:1,qualified_design:0,excluded:{application_unverified:1}};
