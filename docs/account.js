@@ -1,7 +1,7 @@
 'use strict';
 window.scoutAccount=(()=>{
  const cfg=window.SCOUT_ACCOUNT_CONFIG||{},validId=id=>typeof id==='string'&&/^[a-f0-9]{20}$/.test(id);
- let client=null,database=null,user=null,profile=null,activities=new Map(),jobMap=new Map(),ready=Promise.resolve(),generation=0,problem='',writes=Promise.resolve(),started=false;
+ let client=null,database=null,user=null,profile=null,activities=new Map(),jobMap=new Map(),ready=Promise.resolve(),generation=0,problem='',signInError='',writes=Promise.resolve(),started=false;
  const configured=cfg.enabled===true;
  const emit=reset=>window.dispatchEvent(new CustomEvent('scout-account-change',{detail:{reset:!!reset}}));
  const element=id=>document.getElementById(id);
@@ -15,7 +15,8 @@ window.scoutAccount=(()=>{
   element('account-email').textContent=user?.email||'';
   element('account-provider').textContent=cfg.provider==='github'?'Continue with GitHub':'Continue with Google';
   element('account-sync-state').textContent=problem?'Sync needs attention':profile?'Account up to date':'Loading account…';
-  element('account-problem').hidden=!problem;element('account-problem-text').textContent=problem;
+  element('account-problem').hidden=!(problem||signInError);element('account-problem-text').textContent=problem||signInError;
+  element('account-retry').textContent=signInError?'Try sign-in':'Retry sync';
   element('account-import').disabled=!profile||!!problem;
   element('account-export').disabled=!profile||!!problem;
   const label=document.querySelector('.storage-help>summary'),note=document.querySelector('.local-note');
@@ -38,6 +39,7 @@ window.scoutAccount=(()=>{
   if(incoming?.id&&incoming.id===user?.id&&profile&&!problem)return;
   const current=++generation;
   user=incoming;database=session?databaseFor(session):null;profile=null;activities=new Map();problem='';render();emit(true);
+  if(user)signInError='';
   if(!user)return;
   try{
    const id=user.id,db=database;
@@ -56,6 +58,13 @@ window.scoutAccount=(()=>{
    try{
     if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(cfg.url)||!cfg.publishableKey||cfg.publishableKey.startsWith('sb_secret_'))throw new Error('Account sign-in has not been configured correctly.');
     if(!['google','github'].includes(cfg.provider))throw new Error('Unsupported sign-in provider.');
+    const callback=new URL(location.href),fragment=new URLSearchParams(callback.hash.slice(1));
+    if(callback.searchParams.has('error')||fragment.has('error')){
+     signInError='Sign-in could not finish. Try again; if it repeats, the app owner needs to check the sign-in configuration.';
+     for(const key of ['error','error_code','error_description','code','sb'])callback.searchParams.delete(key);
+     if(fragment.has('error'))callback.hash='';
+     window.history?.replaceState(null,'',callback.pathname+callback.search+callback.hash);
+    }
     client=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{flowType:'pkce',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
     const result=await client.auth.getSession();if(result.error)throw new Error('Your sign-in session could not be restored. Try signing in again.');
     await activate(result.data.session);
@@ -145,6 +154,7 @@ window.scoutAccount=(()=>{
  }
  async function signIn(){
   if(!client)throw new Error('Account sign-in is not ready.');
+  signInError='';render();
   const result=await client.auth.signInWithOAuth({provider:cfg.provider,options:{redirectTo:new URL('./',location.href).href}});
   if(result.error)throw new Error('Sign-in could not start. Please try again.');
  }
@@ -164,7 +174,7 @@ window.scoutAccount=(()=>{
   if(!element('account-entry'))return;
   element('account-entry').addEventListener('click',()=>{message('');render();element('account-dialog').showModal();});
   element('account-close').addEventListener('click',()=>element('account-dialog').close());
-  for(const [id,action] of [['account-provider',signIn],['account-signout',signOut],['account-import',importGuest],['account-export',exportData],['account-retry',refresh],['account-delete',deleteAccount]]){
+  for(const [id,action] of [['account-provider',signIn],['account-signout',signOut],['account-import',importGuest],['account-export',exportData],['account-retry',()=>signInError?signIn():refresh()],['account-delete',deleteAccount]]){
    element(id).addEventListener('click',async()=>{const button=element(id);button.disabled=true;message('');try{await action();}catch(e){message(e.message);}finally{button.disabled=false;render();}});
   }
   render();

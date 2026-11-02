@@ -46,7 +46,7 @@ function databaseClient(ownerToken){
  };
 }
 const auth={async getSession(){return {data:{session:currentSession},error:null};},onAuthStateChange(fn){authCallback=fn;return {};},async signOut(){currentSession=null;authCallback('SIGNED_OUT',null);return {error:null};},async signInWithOAuth(){return {error:null};}};
-const context={window:{SCOUT_PUBLIC:true,SCOUT_ACCOUNT_CONFIG:{enabled:true,url:'https://example.supabase.co',publishableKey:'sb_publishable_example',provider:'github'},supabase:{createClient(url,key,options){return options?.accessToken?databaseClient(options.accessToken):{auth,...databaseClient()};}},dispatchEvent:e=>events.push(e)},document:{getElementById:node,querySelector:node,addEventListener(event,fn){if(event==='DOMContentLoaded')context.onDom=fn;},createElement(){return {click(){}};}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail;}},setTimeout,Date,URL,Blob,location:{href:'https://umarliaquat.github.io/job-scout/'},confirm:()=>true};
+const context={window:{SCOUT_PUBLIC:true,SCOUT_ACCOUNT_CONFIG:{enabled:true,url:'https://example.supabase.co',publishableKey:'sb_publishable_example',provider:'github'},supabase:{createClient(url,key,options){return options?.accessToken?databaseClient(options.accessToken):{auth,...databaseClient()};}},dispatchEvent:e=>events.push(e)},document:{getElementById:node,querySelector:node,addEventListener(event,fn){if(event==='DOMContentLoaded')context.onDom=fn;},createElement(){return {click(){}};}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail;}},setTimeout,Date,URL,URLSearchParams,Blob,location:{href:'https://umarliaquat.github.io/job-scout/'},confirm:()=>true};
 vm.createContext(context);vm.runInContext(fs.readFileSync('web/account.js','utf8'),context);
 const account=context.window.scoutAccount;
 const tick=()=>new Promise(resolve=>setTimeout(resolve,10));
@@ -76,5 +76,19 @@ const tick=()=>new Promise(resolve=>setTimeout(resolve,10));
  assert.ok(!JSON.stringify(account.overlay(jobs)).includes('Only B'));
  assert.equal(JSON.parse(storage.get('job-scout-public-tracking-v1'))[second].notes,'Browser note');
  assert.ok(events.some(e=>e.detail.reset));
+ // OAuth failure parameters may contain codes or provider diagnostics. Show a
+ // fixed message, remove the callback data, and keep the retry path functional.
+ let cleanedUrl='',oauthCalls=0;
+ const failed={...context,window:{...context.window,history:{replaceState(_state,_title,url){cleanedUrl=url;}}},location:{href:'https://umarliaquat.github.io/job-scout/?error=server_error&error_description=PRIVATE_CODE&category=design#error=server_error&error_description=PRIVATE_CODE'}};
+ failed.document={...context.document,addEventListener(event,fn){if(event==='DOMContentLoaded')failed.onDom=fn;}};
+ auth.signInWithOAuth=async()=>{oauthCalls++;return {error:null};};
+ vm.createContext(failed);vm.runInContext(fs.readFileSync('web/account.js','utf8'),failed);
+ await failed.window.scoutAccount.start();failed.onDom();
+ assert.equal(failed.window.scoutAccount.active,false);
+ assert.equal(node('account-problem').hidden,false);
+ assert.ok(!node('account-problem-text').textContent.includes('PRIVATE_CODE'));
+ assert.equal(cleanedUrl,'/job-scout/?category=design');
+ assert.equal(node('account-retry').textContent,'Try sign-in');
+ await node('account-retry').click();assert.equal(oauthCalls,1);
  console.log('Account runtime checks passed: account separation, bound credentials, cloud saves, views, migration, failures and sign-out.');
 })().catch(e=>{console.error(e);process.exitCode=1});
