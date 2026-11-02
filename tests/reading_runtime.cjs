@@ -90,8 +90,10 @@ vm.createContext(ui);vm.runInContext(code,ui);vm.runInContext(fs.readFileSync('w
  vm.runInContext('goToPage(3)',ui);
  assert.equal(vm.runInContext("window.scoutReading.isViewed('page-0')",ui),true);
  ui.dated=[{...many[0],id:'nov1',first_seen:'2026-11-01T06:00:00Z'},{...many[1],id:'nov2',first_seen:'2026-11-02T06:00:00Z'}];
- assert.equal(vm.runInContext('dateGroups(dated)[0].label',ui),'2 Nov');
- assert.equal(vm.runInContext('dateGroups(dated)[1].label',ui),'1 Nov');
+ assert.equal(vm.runInContext('dateGroups(dated)[0].key',ui),'found:2026-11-02');
+ assert.match(vm.runInContext('dateGroups(dated)[0].label',ui),/^2 Nov(?: 2026)?$/);
+ assert.equal(vm.runInContext('dateGroups(dated)[1].key',ui),'found:2026-11-01');
+ assert.match(vm.runInContext('dateGroups(dated)[1].label',ui),/^1 Nov(?: 2026)?$/);
  vm.runInContext("displayMode='cards';goToPage(1)",ui);
  assert.equal((node('#results').innerHTML.match(/class="opportunity-card"/g)||[]).length,12);
  vm.runInContext("$('#search').value='no match';page=3;render()",ui);
