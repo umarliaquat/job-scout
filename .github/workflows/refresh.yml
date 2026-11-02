@@ -7,6 +7,8 @@ on:
         type: boolean
         default: false
   schedule:
+    # Temporary no-crawl verification; remove after a real schedule event is observed.
+    - cron: "*/5 * * * *"
     # 07:23 PKT primary; 09:23 and 10:23 PKT recovery attempts.
     - cron: '23 2 * * *'
     - cron: '23 4 * * *'
@@ -59,6 +61,7 @@ jobs:
             git push
           fi
       - name: Rebuild Pages (also recovers a failed earlier deployment)
+        if: steps.plan.outputs.collect == 'true' || github.event_name != 'schedule' || github.event.schedule != '*/5 * * * *'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -67,3 +70,13 @@ jobs:
             sleep 15
           done
           exit 1
+      - name: Record scheduler provenance
+        if: always()
+        env:
+          RUN_EVENT: ${{ github.event_name }}
+          RUN_SCHEDULE: ${{ github.event.schedule }}
+          COLLECT_NEEDED: ${{ steps.plan.outputs.collect }}
+        run: |
+          echo "Event: $RUN_EVENT" >> "$GITHUB_STEP_SUMMARY"
+          echo "Schedule: $RUN_SCHEDULE" >> "$GITHUB_STEP_SUMMARY"
+          echo "Collection needed: $COLLECT_NEEDED" >> "$GITHUB_STEP_SUMMARY"
