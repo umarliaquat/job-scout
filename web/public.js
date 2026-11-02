@@ -37,7 +37,6 @@ window.scoutApi=async function(path,body){
 };
 document.addEventListener('DOMContentLoaded',()=>{
  document.body.classList.add('public-mode');
- document.querySelector('#owner-tools').hidden=false;
  document.querySelector('.local-note').textContent='Your saves, viewed history and notes stay here. Clearing browser data removes them.';
  const form=document.querySelector('#add-source');form.hidden=true;
  document.querySelector('.selection-help>div').lastElementChild.textContent='These are research priorities, not response predictions. Check country requirements and employer identity. No resume data is published.';

@@ -1,6 +1,6 @@
 'use strict';
 
-let data={jobs:[],sources:[],scan:{}},view='discover',tabView='arrivals',limit=30,activeId=null,toastTimer;
+let data={jobs:[],sources:[],scan:{}},view='discover',tabView='arrivals',page=1,activeId=null,toastTimer;
 
 let displayMode='table';
 
@@ -143,6 +143,56 @@ function applicationChip(j){return chip(applicationLabel(j),j.verification==='Ap
 
 function publicationLabel(j){return (j.date_basis||'').startsWith('Last published')?'Last published':j.date_basis.includes('Job-board')?'Job-board date':j.date_basis.includes('Application-page')?'Application-page date':'Listing date';}
 
+const PAGE_SIZE=12;
+const collapsedDates=new Set();
+try{const stored=JSON.parse(localStorage.getItem('job-scout-collapsed-dates-v1')||'[]');if(Array.isArray(stored))for(const key of stored)if(typeof key==='string'&&/^(unviewed|legacy|viewed:\d{4}-\d{2}-\d{2})$/.test(key))collapsedDates.add(key);}catch{}
+const viewDayFormat=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Karachi',year:'numeric',month:'2-digit',day:'2-digit'});
+function pkDate(value){const parts=Object.fromEntries(viewDayFormat.formatToParts(new Date(value)).map(p=>[p.type,p.value]));return `${parts.year}-${parts.month}-${parts.day}`;}
+function dateGroups(jobs){
+ const groups=new Map();
+ for(const j of jobs){
+  const viewed=window.scoutReading.isViewed(j.id),date=window.scoutReading.viewedAt(j.id);
+  const key=!viewed?'unviewed':date?'viewed:'+pkDate(date):'legacy';
+  if(!groups.has(key)){
+   const year=key.startsWith('viewed:')?key.slice(7,11):null;
+   const label=key==='unviewed'?'Not viewed yet':key==='legacy'?'Previously viewed · date unavailable':'Viewed '+new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Karachi',day:'numeric',month:'short',...(year!==pkDate(Date.now()).slice(0,4)?{year:'numeric'}:{})}).format(new Date(key.slice(7)+'T12:00:00+05:00'));
+   groups.set(key,{key,label,jobs:[]});
+  }
+  groups.get(key).jobs.push(j);
+ }
+ const rank=key=>key==='unviewed'?0:key==='legacy'?2:1;
+ return [...groups.values()].sort((a,b)=>rank(a.key)-rank(b.key)||b.key.localeCompare(a.key));
+}
+function paginateGroups(jobs,requestedPage){
+ const groups=dateGroups(jobs),expanded=groups.filter(g=>!collapsedDates.has(g.key)).flatMap(g=>g.jobs);
+ const pages=Math.max(1,Math.ceil(expanded.length/PAGE_SIZE)),current=Math.min(pages,Math.max(1,requestedPage));
+ const start=(current-1)*PAGE_SIZE,selected=new Set(expanded.slice(start,start+PAGE_SIZE).map(j=>j.id));
+ const visible=groups.map(g=>({...g,closed:collapsedDates.has(g.key),rows:g.jobs.filter(j=>selected.has(j.id))})).filter(g=>g.closed||g.rows.length);
+ return {groups:visible,page:current,pages,total:expanded.length,start,closedJobs:jobs.length-expanded.length};
+}
+const groupBodyId=key=>'date-group-'+key.replace(/:/g,'-');
+function groupControl(g){return `<button class="date-group-toggle" data-group="${esc(g.key)}" aria-expanded="${!g.closed}" aria-controls="${groupBodyId(g.key)}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m5 3 5 5-5 5"/></svg><span>${esc(g.label)}</span><span class="date-group-count">${g.jobs.length} ${g.jobs.length===1?'job':'jobs'}</span></button>`;}
+function renderPagination(result){
+ const pages=[...new Set([1,result.pages,result.page-1,result.page,result.page+1].filter(n=>n>=1&&n<=result.pages))].sort((a,b)=>a-b);
+ const numbers=pages.map((n,i)=>(i&&n-pages[i-1]>1?'<span class="page-gap" aria-hidden="true">…</span>':'')+`<button data-page="${n}" aria-label="Page ${n}" ${n===result.page?'aria-current="page"':''}>${n}</button>`).join('');
+ const range=result.total?`${result.start+1}–${Math.min(result.start+PAGE_SIZE,result.total)} of ${result.total} ${result.closedJobs?'expanded ':''}${result.total===1?'job':'jobs'}`:'All date groups collapsed';
+ $('#pagination').hidden=false;
+ $('#pagination').innerHTML=`<span class="page-range" role="status">${range}</span><div class="page-controls"><button data-page="${result.page-1}" ${result.page===1?'disabled':''} aria-label="Previous page">Previous</button>${numbers}<button data-page="${result.page+1}" ${result.page===result.pages?'disabled':''} aria-label="Next page">Next</button></div>`;
+}
+function groupedResults(jobs){
+ const result=paginateGroups(jobs,page);page=result.page;renderPagination(result);
+ return displayMode==='table'?table(result.groups):result.groups.map(g=>`<section class="date-card-group">${groupControl(g)}<div id="${groupBodyId(g.key)}" class="card-grid" ${g.closed?'hidden':''}>${g.rows.map(card).join('')}</div></section>`).join('');
+}
+function toggleDateGroup(key){
+ if(collapsedDates.has(key))collapsedDates.delete(key);else collapsedDates.add(key);
+ try{localStorage.setItem('job-scout-collapsed-dates-v1',JSON.stringify([...collapsedDates]));}catch{}
+ page=1;render();document.querySelector('[data-group="'+key+'"]')?.focus({preventScroll:true});
+}
+function goToPage(next){
+ if(!Number.isInteger(next)||next<1)return;
+ page=next;render();$('#results').focus({preventScroll:true});$('#results').scrollIntoView?.({block:'start',behavior:'instant'});
+}
+
 function card(j){
 
  const reason=(j.opportunity_signals||[]).filter(x=>!x.endsWith(' role')).slice(0,2).join(' · ')||'Role title matches; hiring evidence needs checking.';
@@ -151,10 +201,10 @@ function card(j){
 
 }
 
-function table(jobs){
+function jobRows(jobs){return jobs.map(j=>`<tr><td><button class="table-title" data-job="${esc(j.id)}">${esc(j.title)}</button><span class="cell-secondary">${esc(j.company)}${j.state==='applied'?' · Applied':''}</span><span class="cell-category">${chip(j.category,"violet")}${readingChip(j)}</span></td><td><span>${esc(locationLabel(j))}</span><span class="cell-secondary">${eligibilityChip(j)}</span></td><td><span class="date-value">${j.published?day(j.published):'Unknown'}</span><span class="cell-secondary">${esc(j.published?publicationLabel(j):'Not supplied')}</span>${freshnessChip(j)}</td><td><span class="application-state ${openEvidence(j)?'available':closed(j)?'closed':'uncertain'}">${applicationChip(j)}</span><span class="cell-secondary">${j.checked_at?'Checked '+day(j.checked_at):'Not checked'}</span></td><td><p class="table-catch">${esc(j.main_catch)}</p><button class="table-details" data-job="${esc(j.id)}" aria-label="View evidence for ${esc(j.title)} at ${esc(j.company)}">View evidence ↗</button></td><td>${saveControl(j)}</td></tr>`).join('');}
 
- return `<div class="table-scroll" role="region" aria-label="Opportunities table; scroll horizontally on small screens" tabindex="0"><table class="jobs-table"><caption class="sr-only">Opportunities with location, publication date, application evidence and trade-offs</caption><colgroup><col class="col-role"><col class="col-location"><col class="col-date"><col class="col-evidence"><col class="col-catch"><col class="col-save"></colgroup><thead><tr><th scope="col">Role & company</th><th scope="col">Location</th><th scope="col">Date</th><th scope="col">Application</th><th scope="col">Main consideration</th><th scope="col"><span class="sr-only">Save</span></th></tr></thead><tbody>${jobs.map(j=>`<tr><td><button class="table-title" data-job="${esc(j.id)}">${esc(j.title)}</button><span class="cell-secondary">${esc(j.company)}${j.state==='applied'?' · Applied':''}</span><span class="cell-category">${chip(j.category,"violet")}${readingChip(j)}</span></td><td><span>${esc(locationLabel(j))}</span><span class="cell-secondary">${eligibilityChip(j)}</span></td><td><span class="date-value">${j.published?day(j.published):'Unknown'}</span><span class="cell-secondary">${esc(j.published?publicationLabel(j):'Not supplied')}</span>${freshnessChip(j)}</td><td><span class="application-state ${openEvidence(j)?'available':closed(j)?'closed':'uncertain'}">${applicationChip(j)}</span><span class="cell-secondary">${j.checked_at?'Checked '+day(j.checked_at):'Not checked'}</span></td><td><p class="table-catch">${esc(j.main_catch)}</p><button class="table-details" data-job="${esc(j.id)}" aria-label="View evidence for ${esc(j.title)} at ${esc(j.company)}">View evidence ↗</button></td><td>${saveControl(j)}</td></tr>`).join('')}</tbody></table></div>`;
-
+function table(groups){
+ return `<div class="table-scroll" role="region" aria-label="Opportunities table; scroll horizontally on small screens" tabindex="0"><table class="jobs-table"><caption class="sr-only">Opportunities with location, publication date, application evidence and trade-offs</caption><colgroup><col class="col-role"><col class="col-location"><col class="col-date"><col class="col-evidence"><col class="col-catch"><col class="col-save"></colgroup><thead><tr><th scope="col">Role & company</th><th scope="col">Location</th><th scope="col">Date</th><th scope="col">Application</th><th scope="col">Main consideration</th><th scope="col"><span class="sr-only">Save</span></th></tr></thead>${groups.map(g=>`<tbody class="date-group-heading"><tr><th colspan="6" scope="rowgroup">${groupControl(g)}</th></tr></tbody><tbody id="${groupBodyId(g.key)}" ${g.closed?'hidden':''}>${jobRows(g.rows)}</tbody>`).join('')}</table></div>`;
 }
 
 function arrivalsEmpty(){
@@ -223,21 +273,21 @@ function render(){
 
  const emptyText=discover&&tabView==='arrivals'?'Existing listings are not counted again after a refresh. Check back after the morning update, or browse Best leads. New arrivals must also pass the recency, application and location checks.':discover&&tabView==='promising'?'The current collection has no recent core roles that meet the application and location checks together. Worth a chance has roles with trade-offs; Needs checking contains leads that still need verification.':'Try clearing your filters or exploring a different priority. Saved and applied roles are kept separately.';
 
- $('#results').className=jobs.length&&displayMode==='cards'?'card-grid':'';
+ $('#results').className='';
 
  document.querySelectorAll('[data-layout]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.layout===displayMode)));
 
- $('#results').innerHTML=jobs.length?(displayMode==='table'?table(jobs.slice(0,limit)):jobs.slice(0,limit).map(card).join('')):discover&&tabView==='arrivals'?arrivalsEmpty():`<div class="empty"><h2>${data.jobs.length?emptyTitle:'Start with a fresh search.'}</h2><p>${data.jobs.length?emptyText:'Find recent remote design and product roles, then inspect the evidence before deciding where to apply.'}</p>${data.jobs.length?'<button data-empty="promising">Browse best leads</button><button data-empty="clear">Clear filters</button>':'<button data-empty="scan" class="primary">Find opportunities</button>'}</div>`;
+ $('#results').innerHTML=jobs.length?groupedResults(jobs):discover&&tabView==='arrivals'?arrivalsEmpty():`<div class="empty"><h2>${data.jobs.length?emptyTitle:'Start with a fresh search.'}</h2><p>${data.jobs.length?emptyText:'Find recent remote design and product roles, then inspect the evidence before deciding where to apply.'}</p>${data.jobs.length?'<button data-empty="promising">Browse best leads</button><button data-empty="clear">Clear filters</button>':'<button data-empty="scan" class="primary">Find opportunities</button>'}</div>`;
 
- $('#more').hidden=jobs.length<=limit;
+ if(!jobs.length){$('#pagination').hidden=true;$('#pagination').innerHTML='';}
 
 }
 
-function changeView(next){view=next;limit=30;document.querySelectorAll('.nav').forEach(b=>{const active=b.dataset.view===view;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});render();window.scrollTo({top:0,behavior:'instant'});}
+function changeView(next){view=next;page=1;document.querySelectorAll('.nav').forEach(b=>{const active=b.dataset.view===view;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});render();window.scrollTo({top:0,behavior:'instant'});}
 
-function changeTab(next){tabView=next;limit=30;render();}
+function changeTab(next){tabView=next;page=1;render();}
 
-function clearFilters(){for(const s of ['#search','#freshness','#eligibility','#reading-status'])$(s).value='';$('#category').value='design';render();}
+function clearFilters(){page=1;for(const s of ['#search','#freshness','#eligibility','#reading-status'])$(s).value='';$('#category').value='design';render();}
 
 function sourceName(name){return ({arbeitnow:'Arbeitnow · Europe',arbeitnow_uk:'Arbeitnow · United Kingdom',himalayas:'Himalayas · remote jobs',wwr:'We Work Remotely',remoteok:'Remote OK',jobicy:'Jobicy',remotive:'Remotive'})[name]||name.replace(/^ashby:/,'Ashby · ').replace(/^greenhouse:/,'Greenhouse · ').replace(/^workable:/,'Workable · ').replace(/^page:/,'Employer page · ');}
 function renderSources(){$('.coverage-note p').textContent=window.SCOUT_PUBLIC?'Public source checks from the last collection. Failed checks are kept visible; they do not mean a company has stopped hiring.':'Follow smaller companies and inspect source checks. A failed check does not mean a company has stopped hiring.';$('#source-list').innerHTML=data.sources.map(s=>`<div class="source-row"><strong>${esc(sourceName(s.name))}</strong><span>${badge(s.status,s.status==='error'?'bad':['pending','manual'].includes(s.status)?'warn':'good')}</span><span>${esc(s.detail)}<br>Checked ${stamp(s.checked)}</span></div>`).join('')||'<p>No sources checked yet. Run a scan to begin.</p>';}
@@ -266,22 +316,22 @@ $('#discovery-tabs').addEventListener('click',e=>{const b=e.target.closest('[dat
 
 $('#discovery-tabs').addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const tabs=[...document.querySelectorAll('[data-tab]')];const index=tabs.findIndex(x=>x.dataset.tab===tabView);const next=e.key==='Home'?0:e.key==='End'?tabs.length-1:(index+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;changeTab(tabs[next].dataset.tab);tabs[next].focus();});
 
-$('#results').addEventListener('click',e=>{const save=e.target.closest('[data-save]'),job=e.target.closest('[data-job]'),empty=e.target.closest('[data-empty]');if(save)quickSave(save.dataset.save,save);else if(job)showJob(job.dataset.job);else if(empty){if(empty.dataset.empty==='scan')startScan();else if(empty.dataset.empty==='clear')clearFilters();else{clearFilters();changeTab(empty.dataset.empty);}}});
+$('#results').addEventListener('click',e=>{const save=e.target.closest('[data-save]'),job=e.target.closest('[data-job]'),empty=e.target.closest('[data-empty]');if(save)quickSave(save.dataset.save,save);else if(job)showJob(job.dataset.job);else if(e.target.closest('[data-group]')){toggleDateGroup(e.target.closest('[data-group]').dataset.group);}else if(empty){if(empty.dataset.empty==='scan')startScan();else if(empty.dataset.empty==='clear')clearFilters();else{clearFilters();changeTab(empty.dataset.empty);}}});
 
 $('#close-detail').addEventListener('click',()=>$('#detail').close());
-$('#detail').addEventListener('close',()=>{if(tabView==='arrivals')$('#results').focus();});
+$('#detail').addEventListener('close',()=>$('#results').focus());
 
 $('#detail').addEventListener('click',e=>{if(e.target===$('#detail')&&e.offsetX<0)$('#detail').close();});
 
-for(const s of ['#search','#category','#freshness','#eligibility','#reading-status','#sort'])$(s).addEventListener(s==='#search'?'input':'change',()=>{limit=30;render();});
+for(const s of ['#search','#category','#freshness','#eligibility','#reading-status','#sort'])$(s).addEventListener(s==='#search'?'input':'change',()=>{page=1;render();});
 
 $('#filter-toggle').addEventListener('click',()=>{const hidden=!$('#extra-filters').hidden;$('#extra-filters').hidden=hidden;$('#filter-toggle').setAttribute('aria-expanded',String(!hidden));});
 
 $('#clear-filters').addEventListener('click',clearFilters);
 
-$('#layout-toggle').addEventListener('click',e=>{const b=e.target.closest('[data-layout]');if(!b)return;displayMode=b.dataset.layout;try{localStorage.setItem('job-scout-layout',displayMode);}catch{}render();});
+$('#layout-toggle').addEventListener('click',e=>{const b=e.target.closest('[data-layout]');if(!b)return;displayMode=b.dataset.layout;page=1;try{localStorage.setItem('job-scout-layout',displayMode);}catch{}render();});
 
-$('#more').addEventListener('click',()=>{limit+=30;render();});
+$('#pagination').addEventListener('click',e=>{const b=e.target.closest('[data-page]');if(b&&!b.disabled)goToPage(Number(b.dataset.page));});
 
 $('#add-source').addEventListener('submit',async e=>{e.preventDefault();const b=e.target.querySelector('button');b.disabled=true;try{await api('/api/source',Object.fromEntries(new FormData(e.target)));e.target.reset();await load();toast('Employer added. Run a scan to check its openings.');}catch(err){error(err.message);}finally{b.disabled=false;}});
 

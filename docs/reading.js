@@ -7,8 +7,11 @@ window.scoutReading=(()=>{
   const saved=JSON.parse(localStorage.getItem(key)||'null');
   if(saved&&['known','pending','viewed'].every(k=>Array.isArray(saved[k])&&saved[k].every(x=>typeof x==='string'))){state=saved;initialized=true;}
  }catch{}
- const known=new Set(state.known),pending=new Set(state.pending),viewed=new Set(state.viewed);
- function save(){try{localStorage.setItem(key,JSON.stringify({known:[...known],pending:[...pending],viewed:[...viewed]}));persistent=true;}catch{persistent=false;}}
+ const known=new Set(state.known),pending=new Set(state.pending),viewed=new Set(state.viewed),viewedAt=Object.create(null);
+ if(state.viewedAt&&typeof state.viewedAt==='object'&&!Array.isArray(state.viewedAt)){
+  for(const [id,date] of Object.entries(state.viewedAt))if(viewed.has(id)&&typeof date==='string'&&Number.isFinite(Date.parse(date)))viewedAt[id]=date;
+ }
+ function save(){try{localStorage.setItem(key,JSON.stringify({known:[...known],pending:[...pending],viewed:[...viewed],viewedAt}));persistent=true;}catch{persistent=false;}}
  return {
   sync(jobs){
    const baseline=!initialized;
@@ -17,7 +20,8 @@ window.scoutReading=(()=>{
   },
   isNew:id=>pending.has(id)&&!viewed.has(id),
   isViewed:id=>viewed.has(id),
-  markViewed(id){viewed.add(id);pending.delete(id);save();},
+  viewedAt:id=>viewedAt[id]||null,
+  markViewed(id){viewed.add(id);pending.delete(id);if(!viewedAt[id])viewedAt[id]=new Date().toISOString();save();},
   get persistent(){return persistent;}
  };
 })();
