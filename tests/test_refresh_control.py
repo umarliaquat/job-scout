@@ -11,6 +11,13 @@ class RefreshControlTests(unittest.TestCase):
         for value in [None, {}, {'last_run': {'finished': 'invalid'}}, {'last_run': {'finished': '2026-11-01'}}]:
             self.assertFalse(refreshed_today(value, now))
 
+    def test_yesterdays_success_never_skips_the_next_morning(self):
+        yesterday={'last_run':{'finished':'2026-11-01T08:13:15+00:00'}}
+        for hour in [2,3,4,5,6]:
+            self.assertFalse(refreshed_today(yesterday,datetime(2026,11,2,hour,23,tzinfo=timezone.utc)))
+        today={'last_run':{'finished':'2026-11-02T02:30:00+00:00'}}
+        self.assertTrue(refreshed_today(today,datetime(2026,11,2,3,23,tzinfo=timezone.utc)))
+
     def test_usage_counter_is_sanitized_and_cannot_reset_invalid_counts(self):
         self.assertEqual(usage_record({'date': '2026-11-01', 'requests': 80, 'private': 'excluded'}), {'date': '2026-11-01', 'requests': 80})
         for count in [-1, 101, '0', True]:

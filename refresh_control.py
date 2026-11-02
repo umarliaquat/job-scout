@@ -4,6 +4,7 @@ import json
 import os
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parent
 PK = timezone(timedelta(hours=5))
@@ -36,7 +37,7 @@ def validate(snapshot):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('action', choices=['plan', 'restore', 'persist', 'validate'])
+    parser.add_argument('action', choices=['plan', 'restore', 'persist', 'validate', 'publication'])
     action = parser.parse_args().action
     saved = ROOT / '.refresh-state/himalayas-usage.json'
     runtime = ROOT / 'data/himalayas-usage.json'
@@ -49,6 +50,18 @@ def main():
         with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
             output.write('collect=' + value + '\n')
         print('Collect today: ' + value)
+    elif action == 'publication':
+        expected=json.loads((ROOT/'docs/jobs.json').read_text('utf-8'))['last_run']['finished']
+        try:
+            req=Request('https://umarliaquat.github.io/job-scout/jobs.json?health='+str(int(datetime.now(timezone.utc).timestamp())),headers={'Cache-Control':'no-cache'})
+            with urlopen(req,timeout=20) as response:
+                actual=json.loads(response.read(5_000_000))['last_run']['finished']
+            needed=actual!=expected
+        except Exception:
+            needed=True
+        with open(os.environ['GITHUB_OUTPUT'],'a',encoding='utf-8') as output:
+            output.write('publish='+str(needed).lower()+'\n')
+        print('Published collection needs update: '+str(needed))
     elif action == 'validate':
         import scout
         validate(scout.snapshot())

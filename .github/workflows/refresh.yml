@@ -1,14 +1,17 @@
 name: Refresh public job research
+run-name: Job refresh - ${{ github.event_name == 'schedule' && 'GitHub schedule' || inputs.trigger_source || 'manual' }}
 on:
   workflow_dispatch:
     inputs:
+      trigger_source:
+        description: "Scheduler source (for verification)"
+        type: string
+        default: manual
       force_collection:
         description: "Run a repair collection even if today already succeeded"
         type: boolean
         default: false
   schedule:
-    # Temporary no-crawl verification; remove after a real schedule event is observed.
-    - cron: "*/5 * * * *"
     # 07:23 PKT primary; 09:23 and 10:23 PKT recovery attempts.
     - cron: '23 2 * * *'
     - cron: '23 4 * * *'
@@ -60,8 +63,11 @@ jobs:
             git commit -m 'Refresh public job research and API usage counter'
             git push
           fi
+      - name: Check published collection freshness
+        id: publication
+        run: python3 -B refresh_control.py publication
       - name: Rebuild Pages (also recovers a failed earlier deployment)
-        if: steps.plan.outputs.collect == 'true' || github.event_name != 'schedule' || github.event.schedule != '*/5 * * * *'
+        if: steps.publication.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -75,8 +81,10 @@ jobs:
         env:
           RUN_EVENT: ${{ github.event_name }}
           RUN_SCHEDULE: ${{ github.event.schedule }}
+          TRIGGER_SOURCE: ${{ inputs.trigger_source }}
           COLLECT_NEEDED: ${{ steps.plan.outputs.collect }}
         run: |
           echo "Event: $RUN_EVENT" >> "$GITHUB_STEP_SUMMARY"
           echo "Schedule: $RUN_SCHEDULE" >> "$GITHUB_STEP_SUMMARY"
+          echo "External source: $TRIGGER_SOURCE" >> "$GITHUB_STEP_SUMMARY"
           echo "Collection needed: $COLLECT_NEEDED" >> "$GITHUB_STEP_SUMMARY"
