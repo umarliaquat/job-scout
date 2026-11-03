@@ -1,1 +1,1 @@
-{"schema":1,"phase":"running","updated_at":"2026-11-03T03:53:08.281415+00:00","reason":"","last_collection":"2026-11-03T02:24:00.761754+00:00","next_allowed":null,"run_url":"https://github.com/umarliaquat/job-scout/actions/runs/41574817204"}
+{"schema":1,"phase":"skipped","updated_at":"2026-11-03T03:53:12.160981+00:00","reason":"already_today","last_collection":"2026-11-03T02:24:00.761754+00:00","next_allowed":null,"run_url":"https://github.com/umarliaquat/job-scout/actions/runs/41574817204"}
