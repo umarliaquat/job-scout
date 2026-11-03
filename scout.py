@@ -614,6 +614,41 @@ def add_employer(company, website, url):
     return b
 
 
+def career_sections(text):
+    """Read bounded employer role sections, excluding neighboring roles and footers."""
+    pattern = r'<h([23])\b[^>]*>(.*?)</h\1>(.*?)(?=<h[1-3]\b|</article>|</section>|</main>|<footer\b|\Z)'
+    result = []
+    for match in re.finditer(pattern, text, re.I | re.S):
+        title = plain(match.group(2))
+        if role(title):
+            result.append((title, '<h1>' + html.escape(title) + '</h1>' + match.group(3)))
+    return result
+
+
+def career_section_jobs(board, text, final, cached):
+    """Opt-in sources only: require remote wording and an application in each card."""
+    jobs = []
+    for title, fragment in career_sections(text):
+        page = Page(); page.feed(fragment)
+        body = plain(' '.join(page.parts))
+        if not re.search(r'\bremote\b', body, re.I) or re.search(r'\bhybrid\b|\bon[ -]site\b', body, re.I):
+            continue
+        routes = [(h, label) for h, label in page.links if re.search(r'\bapply\b|application', label, re.I)
+                  and h.startswith(('mailto:', 'https://', 'http://', '/'))]
+        if not routes:
+            continue
+        # The configured country describes the employer's advertised hiring scope.
+        # A card's explicit country/residency requirement still wins in geography().
+        job = make_job(board['company'], title, board.get('location', 'Remote · country unconfirmed'),
+                       body, final, 'Employer page: ' + board['company'])
+        if job:
+            job.update(company_url=board['website'], direct=True, board_key='page:' + board['slug'],
+                       board_observed=now(), board_cached=cached, section_title=title,
+                       research_notes=board.get('research_notes', ''))
+            jobs.append(job)
+    return jobs
+
+
 def career_page_jobs(board, hours):
     url = board['url']
     if not permitted(url):
@@ -650,7 +685,7 @@ def career_page_jobs(board, hours):
             p = Page(); p.feed(body); candidates.append((dest,p))
         except Exception:
             continue
-    jobs = []
+    jobs = career_section_jobs(board, text, final, cached) if board.get('role_sections') else []
     for target, p in candidates:
         page_jobs=[]
         for block in posting_blocks(p.blocks):
@@ -758,6 +793,12 @@ def _verify_application(job):
         text, final, cached = fetch(target, 12)
         page = Page()
         page.feed(text)
+        if j.get('section_title'):
+            matching = [fragment for title, fragment in career_sections(text) if title == j['section_title']]
+            if len(matching) != 1:
+                j.update(verification='Needs review', verification_evidence='The matching employer role section could not be uniquely located. Check manually.')
+                return j
+            page = Page(); page.feed(matching[0])
         body = plain(' '.join(page.parts))
         lower = body.lower()
         if any(s in lower for s in ('verify you are human', 'just a moment...', 'enable javascript and cookies', 'checking your browser')):

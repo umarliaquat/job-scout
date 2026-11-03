@@ -8,6 +8,45 @@ import publish
 class SourceRepairTests(unittest.TestCase):
     @patch('scout.permitted',return_value=True)
     @patch('scout.fetch')
+    def test_role_cards_keep_application_routes_and_requirements_separate(self,fetch,_):
+        text = ('<h1>Careers</h1><article><h2>Full-stack Engineer</h2>Remote Pakistan Rust required '
+                '<a href="mailto:engineering@example.com?subject=Application">Apply</a></article>'
+                '<article><h2>Product Designer</h2>Contract Remote Pakistan Figma '
+                '<a href="mailto:design@example.com?subject=Application">Apply via email</a></article>'
+                '<footer>US only <a href="mailto:footer@example.com">Careers</a></footer>')
+        fetch.return_value=(text,'https://example.com/careers',False)
+        board=dict(company='Example',website='https://example.com',url='https://example.com/careers',
+                   slug='page',location='Remote Pakistan',role_sections=True)
+        jobs,_=scout.career_page_jobs(board,24)
+        design=next(j for j in jobs if j['title']=='Product Designer')
+        self.assertNotIn('Rust',design['description'])
+        self.assertNotIn('US only',design['description'])
+        self.assertIsNone(design['published'])
+        verified=scout.verify(design)
+        self.assertEqual(verified['verification'],'Email applications listed')
+        self.assertEqual(verified['application_email'],'design@example.com')
+        self.assertEqual(scout.opportunity(scout.score(verified,30))['priority'],'review')
+
+    def test_role_cards_require_scoped_remote_and_application_evidence(self):
+        board=dict(company='Example',website='https://example.com',slug='page',location='Remote Pakistan')
+        text=('<h2>Product Designer</h2>On-site Pakistan <a href="mailto:hr@example.com">Apply</a>'
+              '<h2>UX Designer</h2>Remote Figma'
+              '<h2>Web Designer</h2>Hybrid remote <a href="mailto:hr@example.com">Apply</a>'
+              '<footer>Remote worldwide <a href="mailto:hr@example.com">Apply</a></footer>')
+        self.assertEqual(scout.career_section_jobs(board,text,'https://example.com/careers',False),[])
+
+    @patch('scout.permitted',return_value=True)
+    @patch('scout.fetch')
+    def test_removed_or_ambiguous_card_does_not_verify_from_another_role(self,fetch,_):
+        for text in ('<h2>Frontend Engineer</h2>Remote <a href="mailto:hr@example.com">Apply</a>',
+                     '<h2>Product Designer</h2>Remote <h2>Product Designer</h2>Remote'):
+            fetch.return_value=(text,'https://example.com/careers',False)
+            job=scout.make_job('Example','Product Designer','Remote Pakistan','Figma',
+                               'https://example.com/careers','Test',section_title='Product Designer')
+            self.assertEqual(scout.verify(job)['verification'],'Needs review')
+
+    @patch('scout.permitted',return_value=True)
+    @patch('scout.fetch')
     @patch('scout.board_jobs')
     def test_embedded_employer_board_uses_its_public_adapter(self,adapter,fetch,_):
         fetch.return_value=('<iframe src="https://jobs.ashbyhq.com/example/embed"></iframe>','https://example.com/careers',False)

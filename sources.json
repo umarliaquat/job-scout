@@ -296,15 +296,15 @@
       "slug": "pavago",
       "website": "https://pavago.co",
       "location": "Pakistan \u00b7 Remote",
-      "research_notes": "Recruiter for unnamed client. Strong UX role match. Workable page needs JavaScript; do not infer posting date from search crawl."
+      "research_notes": "Recruiter for unnamed client. Strong UX role match. Workable page needs JavaScript; do not infer posting date from search crawl. Recruitment intermediary; end-client identity and size may be undisclosed. Distinct country variants are not additional employers."
     },
     {
       "company": "Huzzle",
       "kind": "workable",
       "slug": "huzzle",
-      "website": "https://huzzle.com",
+      "website": "https://www.huzzle.com",
       "location": "Pakistan \u00b7 Remote",
-      "research_notes": "Recruiter for unnamed client. Direct listing includes Pakistan; another source dates it September 17, so freshness is not established as recent."
+      "research_notes": "Recruiter for unnamed client. Direct listing includes Pakistan; another source dates it September 17, so freshness is not established as recent. Recruitment intermediary; end-client identity and size may be undisclosed. Distinct country variants are not additional employers."
     },
     {
       "company": "Sagan Recruitment",
@@ -384,20 +384,6 @@
       "website": "https://wundergraph.com",
       "location": "Remote \u00b7 EMEA",
       "research_notes": "Developer-tool startup; separate Ashby application linked. EMEA advertised, Pakistan not confirmed. Original publication date unconfirmed."
-    },
-    {
-      "company": "Pavago",
-      "kind": "workable",
-      "slug": "pavago",
-      "website": "https://pavago.co",
-      "research_notes": "Recruitment intermediary; end-client identity and size may be undisclosed. Distinct country variants are not additional employers."
-    },
-    {
-      "company": "Huzzle",
-      "kind": "workable",
-      "slug": "huzzle",
-      "website": "https://www.huzzle.com",
-      "research_notes": "Recruitment intermediary; end-client identity and size may be undisclosed. Distinct country variants are not additional employers."
     },
     {
       "company": "LearnWorlds",
@@ -493,7 +479,8 @@
       "url": "https://uxpilot.ai/careers",
       "website": "https://uxpilot.ai",
       "location": "Remote \u00b7 Europe preferred",
-      "research_notes": "Lead Product Designer: European overlap preferred. Exact publication date unknown; verify current specific role and application form."
+      "research_notes": "Lead Product Designer recovered from its employer role card on November 3. European timezone overlap preferred; Pakistan eligibility unconfirmed. Publication date unknown and application form not established. Confirm scope and current hiring before preparing an application.",
+      "role_sections": true
     },
     {
       "company": "Kestra",
@@ -552,7 +539,8 @@
       "kind": "page",
       "slug": "62c0ec6a419c",
       "website": "https://outliant.com",
-      "url": "https://www.outliant.com/careers-new"
+      "url": "https://www.outliant.com/careers",
+      "research_notes": "Employer homepage links /careers. Current career page publishes Ashby outliant board URLs, but its public posting endpoint returned 404 on November 3. Coverage remains incomplete; do not infer no vacancies."
     },
     {
       "company": "Contra",
@@ -639,6 +627,73 @@
         "https://agentplace.io/careers/agentic-ux-designer": "Employer schema October 15; from $2,500/month. Email must include 3-5 proposed UI improvements. Task pay is not stated and employer says ideas may inform its product. Himalayas advertises worldwide; confirm Pakistan contracting eligibility.",
         "https://agentplace.io/careers/brand-web-designer": "Employer schema October 28; from $3,800/month. Email requires portfolio plus a published sample agent, visual identity and launch designs. Task pay is not stated. Confirm Pakistan contracting eligibility."
       }
+    },
+    {
+      "company": "BKR Tech Solutions",
+      "kind": "page",
+      "slug": "0ec74072d30c",
+      "url": "https://bkrtechsolutions.com.pk/careers/ui-ux-designer--c4ezmehwea07aio1qjypazfrg",
+      "website": "https://bkrtechsolutions.com.pk",
+      "location": "Remote Pakistan",
+      "research_notes": "Employer schema dates UI/UX role October 17, 2026; Pakistan explicitly listed and application form found November 3. Broad experience and employment ranges; employer legitimacy and compensation require independent checking. Employer says applications are reviewed continuously with no fixed opening count."
+    },
+    {
+      "company": "Minerva Project",
+      "kind": "page",
+      "slug": "b447dab0928c",
+      "url": "https://minerva-project.breezy.hr/",
+      "website": "https://www.minervaproject.com",
+      "location": "",
+      "research_notes": "Employer careers page links this Breezy board. Product Designer schema dates October 9, 2026; worldwide applicants advertised, working-hour overlap must be confirmed. Application is JavaScript-rendered; form not verified automatically. Hiring exercise scope/pay not established."
+    },
+    {
+      "company": "SadaPay",
+      "kind": "page",
+      "slug": "efd0bd4158f2",
+      "url": "https://sadapay.pk/jobs-listing/ai-first-product-designer",
+      "website": "https://sadapay.pk",
+      "location": "Remote Pakistan",
+      "title": "AI-First Product Designer",
+      "research_notes": "AI-first product design with coded prototypes. Role page advertises 100% remote and Pakistan cities, while general careers policy describes hybrid in office cities. Confirm the arrangement. Date unknown; linked Notion application could not be verified. Do not promote as newly posted."
+    },
+    {
+      "company": "Canonical",
+      "kind": "page",
+      "slug": "f891b9837714",
+      "url": "https://canonical.com/careers/web-and-design",
+      "website": "https://canonical.com",
+      "location": "",
+      "research_notes": "Employer design careers index monitors future vacancies. Current schema dates are old (2022-2026), not recent openings. EMEA roles do not establish Pakistan eligibility; confirm with employer. Requires travel and original applicant-written answers."
+    },
+    {
+      "company": "Dukanic",
+      "kind": "page",
+      "slug": "20b83175f645",
+      "url": "https://www.dukanic.com/careers",
+      "website": "https://www.dukanic.com",
+      "location": "Remote Pakistan",
+      "role_sections": true,
+      "research_notes": "Employer lists a remote contract Product Designer for Pakistani commerce. Role-scoped email application route observed November 3; date, compensation, legal employer identity and active hiring need confirmation."
+    },
+    {
+      "company": "BazarPak",
+      "kind": "page",
+      "slug": "376ef51a63fe",
+      "url": "https://bazarpak.com/careers",
+      "website": "https://bazarpak.com",
+      "location": "Remote Pakistan",
+      "role_sections": true,
+      "research_notes": "Employer advertises working from anywhere in Pakistan and a Product Designer email route. Date unknown. Early product and scale claims are self-reported; independently check employer identity, compensation and current hiring."
+    },
+    {
+      "company": "Realium",
+      "kind": "page",
+      "slug": "69c9ecb1dba2",
+      "url": "https://realium.org/careers/",
+      "website": "https://realium.org",
+      "location": "Remote Pakistan",
+      "role_sections": true,
+      "research_notes": "Employer UI/UX Designer card says Remote Pakistan and 3+ years. Role-scoped email application route observed November 3. Date, compensation and independent employer identity need confirmation."
     }
   ],
   "arbeitnow_max_pages": 20,
