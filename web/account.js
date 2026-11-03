@@ -3,17 +3,34 @@ window.scoutAccount=(()=>{
  const cfg=window.SCOUT_ACCOUNT_CONFIG||{},validId=id=>typeof id==='string'&&/^[a-f0-9]{20}$/.test(id);
  let client=null,database=null,user=null,profile=null,activities=new Map(),jobMap=new Map(),ready=Promise.resolve(),generation=0,problem='',signInError='',writes=Promise.resolve(),started=false;
  const configured=cfg.enabled===true;
+ let settled=false,guest=false,oauthBusy=false;
+ try{guest=sessionStorage.getItem('job-scout-guest-v1')==='1';}catch{}
  const emit=reset=>window.dispatchEvent(new CustomEvent('scout-account-change',{detail:{reset:!!reset}}));
  const element=id=>document.getElementById(id);
  const message=text=>{if(element('account-message'))element('account-message').textContent=text;};
+ function guestChoice(value){guest=value;try{if(value)sessionStorage.setItem('job-scout-guest-v1','1');else sessionStorage.removeItem('job-scout-guest-v1');}catch{}}
+ function welcome(){guestChoice(false);if(element('account-menu'))element('account-menu').open=false;render();element('welcome-title')?.focus?.();}
  function render(){
   if(!element('account-entry'))return;
-  element('account-entry').hidden=!configured||!window.SCOUT_PUBLIC;
-  element('account-entry').textContent=user?(user.user_metadata?.full_name||user.user_metadata?.name||user.email||'Your account'):'Sign in';
-  element('account-entry').title=user?'Your account and cloud sync':'Sign in to sync saved jobs across devices';
-  element('account-guest').hidden=!!user;element('account-member').hidden=!user;
+  const enabled=configured&&!!window.SCOUT_PUBLIC,showWelcome=enabled&&!user&&!guest;
+  if(settled||user||!enabled)document.body?.classList?.remove('public-entry-loading');
+  if(element('welcome-screen'))element('welcome-screen').hidden=!showWelcome;
+  if(element('dashboard-shell'))element('dashboard-shell').hidden=showWelcome;
+  if(element('account-controls'))element('account-controls').hidden=!enabled;
+  element('account-entry').hidden=!enabled||!!user;
+  element('account-entry').textContent='Sign in';element('account-entry').title='Sign in or create your Job Scout account';
+  if(element('account-menu')){element('account-menu').hidden=!enabled||!user;if(!user)element('account-menu').open=false;}
+  const name=user?.user_metadata?.full_name||user?.user_metadata?.name||user?.email||'Your account';
+  if(element('account-name'))element('account-name').textContent=name;
+  if(element('account-avatar'))element('account-avatar').textContent=Array.from(name.trim())[0]?.toUpperCase()||'U';
+  if(element('account-menu-email'))element('account-menu-email').textContent=user?.email||'';
+  element('account-member').hidden=!user;
   element('account-email').textContent=user?.email||'';
-  element('account-provider').textContent=cfg.provider==='github'?'Continue with GitHub':'Continue with Google';
+  element('account-provider-label').textContent=cfg.provider==='github'?'Continue with GitHub':'Continue with Google';
+  element('account-provider').disabled=!client||!settled||oauthBusy;
+  element('browse-guest').disabled=!settled;
+  if(element('welcome-status'))element('welcome-status').textContent=oauthBusy?'Opening sign-in…':!settled&&enabled?'Checking your session…':'';
+  if(element('welcome-error')){element('welcome-error').hidden=!(signInError||problem);element('welcome-error').textContent=signInError||problem;}
   element('account-sync-state').textContent=problem?'Sync needs attention':profile?'Account up to date':'Loading account…';
   element('account-problem').hidden=!(problem||signInError);element('account-problem-text').textContent=problem||signInError;
   element('account-retry').textContent=signInError?'Try sign-in':'Retry sync';
@@ -69,12 +86,14 @@ window.scoutAccount=(()=>{
     const result=await client.auth.getSession();if(result.error)throw new Error('Your sign-in session could not be restored. Try signing in again.');
     await activate(result.data.session);
     client.auth.onAuthStateChange((event,session)=>{
+     if(event==='SIGNED_OUT'){guestChoice(false);element('account-dialog')?.close?.();}
      if(session?.user?.id===user?.id&&profile&&!problem){database=databaseFor(session);return;}
      // Invalidate old-account writes synchronously; perform DB reads outside Auth's lock.
      generation++;user=session?.user||null;database=null;profile=null;activities=new Map();problem='';render();emit(true);
      setTimeout(()=>{ready=activate(session);},0);
     });
-   }catch(e){problem=e.message;render();}
+   }catch(e){problem=e.message;}
+   finally{settled=true;render();}
   })();
   return ready;
  }
@@ -154,15 +173,20 @@ window.scoutAccount=(()=>{
  }
  async function signIn(){
   if(!client)throw new Error('Account sign-in is not ready.');
-  signInError='';render();
-  const result=await client.auth.signInWithOAuth({provider:cfg.provider,options:{redirectTo:new URL('./',location.href).href}});
-  if(result.error)throw new Error('Sign-in could not start. Please try again.');
+  signInError='';oauthBusy=true;render();
+  try{
+   const result=await client.auth.signInWithOAuth({provider:cfg.provider,options:{redirectTo:new URL('./',location.href).href}});
+   if(result.error)throw new Error('Sign-in could not start. Please try again.');
+  }finally{oauthBusy=false;render();}
  }
  async function signOut(){
   if(!client)return;
+  await writes.catch(()=>{});
   const result=await client.auth.signOut({scope:'local'});
   if(result.error)throw new Error('Sign-out did not complete. Please retry.');
+  guestChoice(false);element('account-dialog')?.close?.();
   ready=activate(null);await ready;
+  element('welcome-title')?.focus?.();
  }
  async function deleteAccount(){
   if(!user)return;
@@ -172,10 +196,14 @@ window.scoutAccount=(()=>{
  }
  document.addEventListener('DOMContentLoaded',()=>{
   if(!element('account-entry'))return;
-  element('account-entry').addEventListener('click',()=>{message('');render();element('account-dialog').showModal();});
+  element('account-entry').addEventListener('click',welcome);
+  element('browse-guest').addEventListener('click',()=>{guestChoice(true);render();element('view-title')?.focus?.();});
+  element('account-settings').addEventListener('click',()=>{element('account-menu').open=false;message('');render();element('account-dialog').showModal();});
+  document.addEventListener('click',event=>{const menu=element('account-menu');if(menu?.open&&!menu.contains(event.target))menu.open=false;});
+  document.addEventListener('keydown',event=>{const menu=element('account-menu');if(event.key==='Escape'&&menu?.open){menu.open=false;element('account-menu-trigger')?.focus?.();}});
   element('account-close').addEventListener('click',()=>element('account-dialog').close());
   for(const [id,action] of [['account-provider',signIn],['account-signout',signOut],['account-import',importGuest],['account-export',exportData],['account-retry',()=>signInError?signIn():refresh()],['account-delete',deleteAccount]]){
-   element(id).addEventListener('click',async()=>{const button=element(id);button.disabled=true;message('');try{await action();}catch(e){message(e.message);}finally{button.disabled=false;render();}});
+   element(id).addEventListener('click',async()=>{const button=element(id),isSignIn=id==='account-provider'||id==='account-retry'&&!!signInError;button.disabled=true;message('');try{await action();}catch(e){if(isSignIn)signInError=e.message;message(e.message);}finally{button.disabled=false;render();}});
   }
   render();
  });

@@ -30,3 +30,9 @@ an explicit user confirmation. Existing cloud records win during an import.
 The Free project's published allowance and remaining usage must be checked
 before expanding usage. No custom SMTP, Gmail access, paid APIs or billing are
 needed for Google sign-in. Inactive Free projects may pause.
+
+The public site starts with a welcome screen for signed-out users. Google handles
+both signup and login; Browse as guest keeps browser-only tracking available.
+Guest mode is remembered for the current tab. A restored account opens the
+dashboard directly. The header account menu contains Sign out and Account & data
+(import, export and deletion). Signing out returns to the welcome screen.

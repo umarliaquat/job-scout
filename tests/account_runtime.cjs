@@ -7,7 +7,7 @@ db.activity.set(rowKey(a,id),{user_id:a,job_id:id,status:'saved',notes:'Only A',
 db.activity.set(rowKey(b,id),{user_id:b,job_id:id,status:'applied',notes:'Only B',viewed:false,job_snapshot:{}});
 let currentSession={user:{id:a,email:'a@example.com'},access_token:a},authCallback,failWrites=false;
 const storage=new Map([['job-scout-public-tracking-v1',JSON.stringify({[second]:{state:'saved',notes:'Browser note'}})]]);
-const nodes=new Map(),events=[];
+const nodes=new Map(),events=[],guestSession=new Map();
 function node(id){if(!nodes.has(id))nodes.set(id,{hidden:false,disabled:false,textContent:'',open:false,addEventListener(name,fn){this[name]=fn;},showModal(){this.open=true;},close(){this.open=false;}});return nodes.get(id);}
 function databaseClient(ownerToken){
  async function owner(){return ownerToken?ownerToken():currentSession?.access_token;}
@@ -46,7 +46,7 @@ function databaseClient(ownerToken){
  };
 }
 const auth={async getSession(){return {data:{session:currentSession},error:null};},onAuthStateChange(fn){authCallback=fn;return {};},async signOut(){currentSession=null;authCallback('SIGNED_OUT',null);return {error:null};},async signInWithOAuth(){return {error:null};}};
-const context={window:{SCOUT_PUBLIC:true,SCOUT_ACCOUNT_CONFIG:{enabled:true,url:'https://example.supabase.co',publishableKey:'sb_publishable_example',provider:'github'},supabase:{createClient(url,key,options){return options?.accessToken?databaseClient(options.accessToken):{auth,...databaseClient()};}},dispatchEvent:e=>events.push(e)},document:{getElementById:node,querySelector:node,addEventListener(event,fn){if(event==='DOMContentLoaded')context.onDom=fn;},createElement(){return {click(){}};}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail;}},setTimeout,Date,URL,URLSearchParams,Blob,location:{href:'https://umarliaquat.github.io/job-scout/'},confirm:()=>true};
+const context={window:{SCOUT_PUBLIC:true,SCOUT_ACCOUNT_CONFIG:{enabled:true,url:'https://example.supabase.co',publishableKey:'sb_publishable_example',provider:'github'},supabase:{createClient(url,key,options){return options?.accessToken?databaseClient(options.accessToken):{auth,...databaseClient()};}},dispatchEvent:e=>events.push(e)},document:{getElementById:node,querySelector:node,addEventListener(event,fn){if(event==='DOMContentLoaded')context.onDom=fn;},createElement(){return {click(){}};}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},sessionStorage:{getItem:k=>guestSession.get(k)||null,setItem:(k,v)=>guestSession.set(k,v),removeItem:k=>guestSession.delete(k)},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail;}},setTimeout,Date,URL,URLSearchParams,Blob,location:{href:'https://umarliaquat.github.io/job-scout/'},confirm:()=>true};
 vm.createContext(context);vm.runInContext(fs.readFileSync('web/account.js','utf8'),context);
 const account=context.window.scoutAccount;
 const tick=()=>new Promise(resolve=>setTimeout(resolve,10));
@@ -54,6 +54,9 @@ const tick=()=>new Promise(resolve=>setTimeout(resolve,10));
  await account.start();context.onDom();
  const jobs=[{id,title:'Designer',company:'Studio',first_seen:new Date().toISOString()},{id:second,title:'Another designer',company:'Studio',first_seen:new Date().toISOString()}];
  assert.equal(account.active,true);
+ assert.equal(node('welcome-screen').hidden,true);assert.equal(node('dashboard-shell').hidden,false);
+ assert.equal(node('account-menu').hidden,false);assert.equal(node('account-entry').hidden,true);
+ await node('account-settings').click();assert.equal(node('account-dialog').open,true);node('account-dialog').close();
  assert.equal(account.overlay(jobs)[0].notes,'Only A');
  assert.equal(account.reading.isNew(second),true);
  await account.write(id,'applied','Updated A');
@@ -73,6 +76,12 @@ const tick=()=>new Promise(resolve=>setTimeout(resolve,10));
  failWrites=true;await assert.rejects(account.write(id,'saved','offline'),/could not sync/);failWrites=false;
  await node('account-signout').click();await tick();
  assert.equal(account.active,false);
+ assert.equal(node('welcome-screen').hidden,false);assert.equal(node('dashboard-shell').hidden,true);
+ assert.equal(node('account-menu').hidden,true);
+ await node('browse-guest').click();assert.equal(node('dashboard-shell').hidden,false);
+ assert.equal(guestSession.get('job-scout-guest-v1'),'1');
+ await node('account-entry').click();assert.equal(node('welcome-screen').hidden,false);
+ assert.equal(guestSession.has('job-scout-guest-v1'),false);
  assert.ok(!JSON.stringify(account.overlay(jobs)).includes('Only B'));
  assert.equal(JSON.parse(storage.get('job-scout-public-tracking-v1'))[second].notes,'Browser note');
  assert.ok(events.some(e=>e.detail.reset));
@@ -90,5 +99,15 @@ const tick=()=>new Promise(resolve=>setTimeout(resolve,10));
  assert.equal(cleanedUrl,'/job-scout/?category=design');
  assert.equal(node('account-retry').textContent,'Try sign-in');
  await node('account-retry').click();assert.equal(oauthCalls,1);
+ auth.signInWithOAuth=async()=>({error:{message:'provider unavailable'}});
+ await node('account-provider').click();assert.equal(node('welcome-error').hidden,false);
+ assert.match(node('welcome-error').textContent,/could not start/);
+ await node('browse-guest').click();
+ const restored={...failed,window:{...failed.window},location:{href:'https://umarliaquat.github.io/job-scout/'}};
+ restored.document={...context.document,addEventListener(event,fn){if(event==='DOMContentLoaded')restored.onDom=fn;}};
+ vm.createContext(restored);vm.runInContext(fs.readFileSync('web/account.js','utf8'),restored);
+ await restored.window.scoutAccount.start();restored.onDom();
+ assert.equal(node('welcome-screen').hidden,true,'Guest choice survives a same-tab reload');
+ assert.equal(node('dashboard-shell').hidden,false);
  console.log('Account runtime checks passed: account separation, bound credentials, cloud saves, views, migration, failures and sign-out.');
 })().catch(e=>{console.error(e);process.exitCode=1});

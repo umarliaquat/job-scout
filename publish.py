@@ -110,6 +110,7 @@ def build(output):
         shutil.copyfile(scout.ROOT/'web/vendor'/name,output/'vendor'/name)
     html=(scout.ROOT/'web/index.html').read_text('utf-8')
     html=html.replace('<script src="./details.js"','<script src="./public.js" defer></script><script src="./details.js"')
+    html=html.replace('<body>','<body class="public-entry-loading">')
     html=html.replace('href="/api/export"','href="#export"').replace('href="/"','href="./"')
     html=version_assets(html,output)
     (output/'index.html').write_text(html,'utf-8')
