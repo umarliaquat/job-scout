@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy — Job Scout</title>
+<style>
+@font-face{font-family:Inter Tight;src:url('./fonts/InterTight-Variable.ttf') format('truetype');font-weight:100 900;font-display:swap}
+*{box-sizing:border-box}body{margin:0;background:#f6f8f3;color:#263c30;font:17px/1.65 'Inter Tight',system-ui,sans-serif}main{max-width:760px;margin:auto;padding:32px 20px 56px}a{color:#17654f;text-underline-offset:3px}a:focus-visible{outline:2px solid #17654f;outline-offset:4px}h1{font-size:34px;line-height:1.2;margin:28px 0 8px}h2{font-size:21px;line-height:1.35;margin:28px 0 10px}p,ul{margin:10px 0}li{margin:6px 0}.updated{font-size:14px;color:#607065}footer{border-top:1px solid #d9e2d5;margin-top:32px;padding-top:18px}
+</style>
+<main>
+<a href="./">← Back to Job Scout</a>
+<h1>Privacy</h1>
+<p class="updated">Updated 3 November 2026</p>
+<p>Job Scout helps you find jobs and keep track of opportunities. Signing in is optional.</p>
+<h2>Information used</h2>
+<ul>
+<li><strong>Google sign-in:</strong> your Google account identifier, email address, name and profile picture are processed through Supabase Authentication. Job Scout requests only basic identity permissions, not Gmail, Drive or Contacts access.</li>
+<li><strong>Your job activity:</strong> saved, applied and dismissed statuses, notes, viewed history, an account start date, and a small copy of tracked job details are stored in Supabase when signed in. Database rules restrict access to your own records.</li>
+<li><strong>This browser:</strong> sign-in session tokens and display preferences are stored locally. Guest saves and notes stay in this browser unless you choose to import them into your account.</li>
+</ul>
+<h2>Why it is used</h2>
+<p>This information signs you in, restores your private job history across devices and distinguishes new listings from jobs you have viewed. Job Scout does not automatically submit job applications or send your notes to employers. It includes no advertising or analytics SDK.</p>
+<h2>Services involved</h2>
+<p><a href="https://policies.google.com/privacy">Google</a> handles identity, <a href="https://supabase.com/privacy">Supabase</a> stores account data, and <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub</a> hosts the public site and job collection. These services receive connection information such as IP addresses and may retain operational logs under their own policies. Private job activity is not published in the GitHub repository.</p>
+<h2>Your controls</h2>
+<p>Open your account menu to export your data, sign out or delete your account and active cloud history. Guest browser data remains separate; clearing site data removes it and signs you out. Provider logs may remain under provider retention policies. You can also revoke Google access in your <a href="https://myaccount.google.com/connections">Google account settings</a>.</p>
+<footer>Questions about your data? Contact the maintainer through the <a href="https://github.com/umarliaquat/job-scout">project repository</a>. Do not post private notes, passwords or keys in public issues.</footer>
+</main>
+</html>

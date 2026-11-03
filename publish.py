@@ -104,6 +104,7 @@ def build(output):
     for name in ('style.css','layout.css','chips.css','finish.css','app.js','details.js','reading.js','public.js','account-config.js','account.js'):
         shutil.copyfile(scout.ROOT/'web'/name,output/name)
     shutil.copytree(scout.ROOT/'web/fonts',output/'fonts',dirs_exist_ok=True)
+    shutil.copyfile(scout.ROOT/'web/privacy.html',output/'privacy.html')
     (output/'vendor').mkdir(exist_ok=True)
     for name in ('supabase-2.118.0.js','supabase-LICENSE.txt','supabase-source.json'):
         shutil.copyfile(scout.ROOT/'web/vendor'/name,output/'vendor'/name)
